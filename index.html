@@ -1,0 +1,1843 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portal Materi Workshop - Platform Sharing Materi Seminar & Workshop</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#f5f3ff',
+                            100: '#ede9fe',
+                            200: '#ddd6fe',
+                            500: '#6366f1',
+                            600: '#4f46e5',
+                            700: '#4338ca',
+                            800: '#3730a3',
+                            900: '#312e81',
+                        },
+                        neon: {
+                            cyan: '#06b6d4',
+                            violet: '#8b5cf6',
+                            emerald: '#10b981',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #090d16;
+            color: #f8fafc;
+        }
+        .bg-mesh-dark {
+            background-color: #080c14;
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.22) 0px, transparent 50%),
+                radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.2) 0px, transparent 50%),
+                radial-gradient(at 50% 100%, rgba(99, 102, 241, 0.2) 0px, transparent 50%);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .glass-card:hover {
+            border-color: rgba(139, 92, 246, 0.4);
+            box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.2);
+        }
+    </style>
+</head>
+<body class="antialiased min-h-screen bg-mesh-dark text-slate-100 selection:bg-violet-500 selection:text-white">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useRef } = React;
+
+        const GOOGLE_SCRIPT_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzizvmLG8kUtwlxCg1gXeRtMZmeEhwdUxVBQ49psXINnkkKSoWOuYN3OwY-UPfyUxKLFg/exec';
+
+        const GOOGLE_APPS_SCRIPT_CODE = `// ==========================================
+// CODE.GS - GOOGLE APPS SCRIPT SYNC (Spreadsheet Link Below)
+// Sheet URL: https://docs.google.com/spreadsheets/d/1kzfZJnrB2aVfjTypg0uf3jupw0xbMibvWG6zaCOj30k/edit
+// ==========================================
+
+function doGet(e) {
+  return ContentService.createTextOutput(JSON.stringify({ 
+    "status": "success", 
+    "message": "API Portal Materi Workshop aktif dan siap menerima data pendaftaran & unduhan." 
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var data = JSON.parse(e.postData.contents);
+    var timestamp = new Date();
+    
+    if (data.type === 'REGISTRATION') {
+      sheet.appendRow([
+        timestamp,
+        'PENDAFTARAN',
+        data.full_name,
+        data.email,
+        data.institution,
+        data.whatsapp || '-',
+        '-'
+      ]);
+    } else if (data.type === 'DOWNLOAD') {
+      sheet.appendRow([
+        timestamp,
+        'DOWNLOAD MATERI',
+        data.user_name,
+        data.user_email,
+        data.institution || '-',
+        '-',
+        data.material_title
+      ]);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({ "status": "success" }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+        const Icon = ({ name, className = "w-5 h-5" }) => {
+            const containerRef = useRef(null);
+
+            useEffect(() => {
+                if (containerRef.current && window.lucide) {
+                    containerRef.current.innerHTML = `<i data-lucide="${name}" class="${className}"></i>`;
+                    window.lucide.createIcons({
+                        root: containerRef.current
+                    });
+                }
+            }, [name, className]);
+
+            return <span ref={containerRef} className="inline-flex items-center justify-center shrink-0" />;
+        };
+
+        const INITIAL_MATERIALS = [
+            {
+                id: 'mat-1',
+                title: 'Digitalisasi Pembelajaran dengan Papan Interaktif Digital',
+                description: 'Panduan komprehensif implementasi papan interaktif digital dan aplikasi pendukung untuk meningkatkan keterlibatan peserta didik di kelas modern.',
+                category: 'Digitalisasi Pembelajaran',
+                presenter: 'Dr. Ahmad Dahlan, M.Pd.',
+                thumbnail_url: 'https://images.unsplash.com/photo-1531403009284-440f080d1e12?auto=format&fit=crop&w=600&q=80',
+                file_url: '#download-pdf-1',
+                file_name: 'Modul_Papan_Interaktif_v2.pdf',
+                file_type: 'PDF',
+                file_size: '4.8 MB',
+                is_active: true,
+                created_at: '2026-08-15'
+            },
+            {
+                id: 'mat-2',
+                title: 'Pemanfaatan Artificial Intelligence dalam Pembelajaran',
+                description: 'Teknik menyusun materi ajar, kuis otomatis, dan penilaian personal menggunakan AI generative seperti ChatGPT, Claude, dan Gemini.',
+                category: 'Artificial Intelligence',
+                presenter: 'Prof. Budi Santoso, M.Kom.',
+                thumbnail_url: 'https://images.unsplash.com/photo-1677442136019-21780efad99a?auto=format&fit=crop&w=600&q=80',
+                file_url: '#download-pptx-2',
+                file_name: 'AI_Dalam_Pembelajaran_Slides.pptx',
+                file_type: 'PPTX',
+                file_size: '12.4 MB',
+                is_active: true,
+                created_at: '2026-08-20'
+            },
+            {
+                id: 'mat-3',
+                title: 'Strategi Pembelajaran Digital & Blended Learning',
+                description: 'Framework perancangan kurikulum berbasis campuran (Blended Learning) untuk jenjang pendidikan menengah dan perguruan tinggi.',
+                category: 'Pembelajaran',
+                presenter: 'Siti Rahmawati, M.Ed.',
+                thumbnail_url: 'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?auto=format&fit=crop&w=600&q=80',
+                file_url: '#download-pdf-3',
+                file_name: 'Strategi_Blended_Learning.pdf',
+                file_type: 'PDF',
+                file_size: '3.2 MB',
+                is_active: true,
+                created_at: '2026-08-22'
+            },
+            {
+                id: 'mat-4',
+                title: 'Modul Workshop Praktis Canva & Visual Teaching',
+                description: 'Kumpulan template visual, poster edukasi, dan slide presentasi interaktif yang siap dipakai untuk pembelajaran kreatif.',
+                category: 'Modul',
+                presenter: 'Rian Hidayat, S.Kom.',
+                thumbnail_url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=600&q=80',
+                file_url: '#download-zip-4',
+                file_name: 'Template_Canva_Workshop_Assets.zip',
+                file_type: 'ZIP',
+                file_size: '28.5 MB',
+                is_active: true,
+                created_at: '2026-08-25'
+            }
+        ];
+
+        const INITIAL_USERS = [
+            {
+                id: 'usr-1',
+                full_name: 'Peserta Contoh',
+                email: 'peserta@workshop.id',
+                institution: 'SMA Negeri 1 Jakarta',
+                whatsapp: '081234567890',
+                role: 'participant',
+                status: 'Aktif',
+                created_at: '2026-08-10'
+            },
+            {
+                id: 'usr-admin',
+                full_name: 'Administrator Pemateri',
+                email: 'admin@workshop.id',
+                institution: 'Tim Penyelenggara Workshop',
+                whatsapp: '081199887766',
+                role: 'admin',
+                status: 'Aktif',
+                created_at: '2026-08-01'
+            }
+        ];
+
+        const INITIAL_DOWNLOADS = [
+            {
+                id: 'dl-1',
+                user_id: 'usr-1',
+                user_name: 'Peserta Contoh',
+                user_email: 'peserta@workshop.id',
+                material_id: 'mat-1',
+                material_title: 'Digitalisasi Pembelajaran dengan Papan Interaktif Digital',
+                file_name: 'Modul_Papan_Interaktif_v2.pdf',
+                downloaded_at: '2026-08-26 10:15:22'
+            }
+        ];
+
+        const Toast = ({ message, type, onClose }) => {
+            if (!message) return null;
+            const isSuccess = type === 'success';
+            return (
+                <div className={`fixed bottom-6 right-6 z-50 flex items-center p-4 rounded-2xl shadow-2xl border transition-all duration-300 backdrop-blur-md ${
+                    isSuccess ? 'bg-emerald-950/90 text-emerald-200 border-emerald-500/50' : 'bg-rose-950/90 text-rose-200 border-rose-500/50'
+                }`}>
+                    <div className="mr-3">
+                        <Icon name={isSuccess ? "check-circle" : "alert-circle"} className={`w-5 h-5 ${isSuccess ? 'text-emerald-400' : 'text-rose-400'}`} />
+                    </div>
+                    <div className="text-sm font-medium mr-4">{message}</div>
+                    <button onClick={onClose} className="text-slate-400 hover:text-white">
+                        <Icon name="x" className="w-4 h-4" />
+                    </button>
+                </div>
+            );
+        };
+
+        function App() {
+            const [materials, setMaterials] = useState(() => {
+                const saved = localStorage.getItem('pmw_materials');
+                return saved ? JSON.parse(saved) : INITIAL_MATERIALS;
+            });
+
+            const [users, setUsers] = useState(() => {
+                const saved = localStorage.getItem('pmw_users');
+                return saved ? JSON.parse(saved) : INITIAL_USERS;
+            });
+
+            const [downloads, setDownloads] = useState(() => {
+                const saved = localStorage.getItem('pmw_downloads');
+                return saved ? JSON.parse(saved) : INITIAL_DOWNLOADS;
+            });
+
+            const [currentUser, setCurrentUser] = useState(() => {
+                const saved = localStorage.getItem('pmw_current_user');
+                return saved ? JSON.parse(saved) : null;
+            });
+
+            const [activeTab, setActiveTab] = useState('landing');
+            const [authModal, setAuthModal] = useState({ open: false, mode: 'login' });
+            const [selectedMaterial, setSelectedMaterial] = useState(null);
+            const [showCodeGsModal, setShowCodeGsModal] = useState(false);
+            
+            const [searchTerm, setSearchTerm] = useState('');
+            const [selectedCategory, setSelectedCategory] = useState('Semua');
+            const [sortBy, setSortBy] = useState('terbaru');
+
+            const [toast, setToast] = useState({ message: '', type: 'success' });
+
+            useEffect(() => {
+                localStorage.setItem('pmw_materials', JSON.stringify(materials));
+            }, [materials]);
+
+            useEffect(() => {
+                localStorage.setItem('pmw_users', JSON.stringify(users));
+            }, [users]);
+
+            useEffect(() => {
+                localStorage.setItem('pmw_downloads', JSON.stringify(downloads));
+            }, [downloads]);
+
+            useEffect(() => {
+                if (currentUser) {
+                    localStorage.setItem('pmw_current_user', JSON.stringify(currentUser));
+                } else {
+                    localStorage.removeItem('pmw_current_user');
+                }
+            }, [currentUser]);
+
+            const showToast = (message, type = 'success') => {
+                setToast({ message, type });
+                setTimeout(() => {
+                    setToast({ message: '', type: 'success' });
+                }, 4000);
+            };
+
+            const sendDataToGoogleSheet = async (payload) => {
+                try {
+                    await fetch(GOOGLE_SCRIPT_WEBAPP_URL, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                } catch (err) {
+                    console.warn('Sync ke Google Sheet terhambat:', err);
+                }
+            };
+
+            const handleLogout = () => {
+                setCurrentUser(null);
+                setActiveTab('landing');
+                showToast('Berhasil keluar dari akun.', 'success');
+            };
+
+            const categories = useMemo(() => {
+                const set = new Set(materials.map(m => m.category));
+                return ['Semua', ...Array.from(set)];
+            }, [materials]);
+
+            const filteredMaterials = useMemo(() => {
+                return materials.filter(m => {
+                    const matchSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                                        m.presenter.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                        m.description.toLowerCase().includes(searchTerm.toLowerCase());
+                    const matchCategory = selectedCategory === 'Semua' || m.category === selectedCategory;
+                    const matchActive = currentUser && currentUser.role === 'admin' ? true : m.is_active;
+                    return matchSearch && matchCategory && matchActive;
+                }).sort((a, b) => {
+                    if (sortBy === 'terbaru') return new Date(b.created_at) - new Date(a.created_at);
+                    if (sortBy === 'terlama') return new Date(a.created_at) - new Date(b.created_at);
+                    if (sortBy === 'title') return a.title.localeCompare(b.title);
+                    return 0;
+                });
+            }, [materials, searchTerm, selectedCategory, sortBy, currentUser]);
+
+            const handleDownload = (material) => {
+                if (!currentUser) {
+                    setAuthModal({ open: true, mode: 'login' });
+                    showToast('Silakan masuk terlebih dahulu untuk mengunduh berkas.', 'error');
+                    return;
+                }
+
+                const newDownload = {
+                    id: 'dl-' + Date.now(),
+                    user_id: currentUser.id,
+                    user_name: currentUser.full_name,
+                    user_email: currentUser.email,
+                    institution: currentUser.institution,
+                    material_id: material.id,
+                    material_title: material.title,
+                    file_name: material.file_name,
+                    downloaded_at: new Date().toLocaleString('id-ID')
+                };
+
+                setDownloads(prev => [newDownload, ...prev]);
+
+                sendDataToGoogleSheet({
+                    type: 'DOWNLOAD',
+                    user_name: currentUser.full_name,
+                    user_email: currentUser.email,
+                    institution: currentUser.institution,
+                    material_title: material.title
+                });
+
+                if (material.file_url && (material.file_url.startsWith('http://') || material.file_url.startsWith('https://'))) {
+                    window.open(material.file_url, '_blank');
+                } else {
+                    const dummyContent = `Portal Materi Workshop\n=======================\nJudul: ${material.title}\nPemateri: ${material.presenter}\nDiunduh Oleh: ${currentUser.full_name} (${currentUser.email})\nInstansi: ${currentUser.institution}\nTanggal: ${new Date().toLocaleString('id-ID')}\n\nTerima kasih telah berpartisipasi dalam workshop ini!`;
+                    const blob = new Blob([dummyContent], { type: 'text/plain' });
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = material.file_name || `${material.title.replace(/ /g, '_')}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                }
+
+                showToast(`Materi "${material.title}" berhasil diunduh! Data tersinkron ke Google Sheet.`, 'success');
+            };
+
+            return (
+                <div className="min-h-screen flex flex-col justify-between">
+                    <div>
+                        <header className="glass-panel sticky top-0 z-40 border-b border-slate-800/80">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => setActiveTab('landing')}>
+                                    <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-600 to-cyan-400 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+                                        <Icon name="book-open-check" className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <span className="text-xl font-black bg-gradient-to-r from-white via-indigo-200 to-cyan-400 bg-clip-text text-transparent">
+                                            Portal Materi Workshop
+                                        </span>
+                                        <span className="block text-[10px] text-cyan-400 font-bold tracking-widest uppercase">Media Pembelajaran & Seminar</span>
+                                    </div>
+                                </div>
+
+                                <nav className="hidden md:flex items-center space-x-1 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800/80">
+                                    <button 
+                                        onClick={() => setActiveTab('landing')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'landing' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Beranda
+                                    </button>
+                                    <button 
+                                        onClick={() => setActiveTab('materi')}
+                                        className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeTab === 'materi' ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}`}
+                                    >
+                                        Materi Workshop
+                                    </button>
+                                    {currentUser && (
+                                        <button 
+                                            onClick={() => setActiveTab(currentUser.role === 'admin' ? 'admin' : 'dashboard')}
+                                            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${['dashboard', 'admin', 'riwayat', 'profil'].includes(activeTab) ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-md shadow-indigo-600/30' : 'text-slate-400 hover:text-white'}`}
+                                        >
+                                            {currentUser.role === 'admin' ? 'Admin Panel' : 'Dashboard Saya'}
+                                        </button>
+                                    )}
+                                </nav>
+
+                                <div className="flex items-center space-x-3">
+                                    <button 
+                                        onClick={() => setShowCodeGsModal(true)}
+                                        className="hidden sm:inline-flex items-center space-x-2 text-xs px-4 py-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 font-semibold hover:bg-emerald-500/20 transition"
+                                        title="Script Google Apps Script Sync"
+                                    >
+                                        <Icon name="sheet" className="w-4 h-4 text-emerald-400" />
+                                        <span>Google Sheet Sync</span>
+                                    </button>
+
+                                    {currentUser ? (
+                                        <div className="flex items-center space-x-3 pl-3 border-l border-slate-800">
+                                            <div className="text-right hidden sm:block">
+                                                <div className="text-sm font-bold text-white">{currentUser.full_name}</div>
+                                                <div className="text-[11px] font-semibold text-cyan-400 capitalize">{currentUser.role === 'admin' ? 'Pemateri / Admin' : currentUser.institution}</div>
+                                            </div>
+                                            <button 
+                                                onClick={handleLogout}
+                                                className="p-2.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-xl transition"
+                                                title="Logout"
+                                            >
+                                                <Icon name="log-out" className="w-5 h-5" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center space-x-2">
+                                            <button 
+                                                onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                                                className="px-4 py-2 text-xs font-bold text-slate-300 hover:text-white hover:bg-slate-800 rounded-xl transition"
+                                            >
+                                                Masuk
+                                            </button>
+                                            <button 
+                                                onClick={() => setAuthModal({ open: true, mode: 'register' })}
+                                                className="px-4 py-2 text-xs font-bold text-white bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-95 rounded-xl shadow-lg shadow-indigo-600/30 transition"
+                                            >
+                                                Daftar Sekarang
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </header>
+
+                        <main>
+                            {activeTab === 'landing' && (
+                                <div>
+                                    <section className="relative overflow-hidden py-20 lg:py-32">
+                                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+                                            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold bg-violet-500/10 text-violet-300 border border-violet-500/30 mb-8 backdrop-blur-md">
+                                                <Icon name="sparkles" className="w-4 h-4 text-cyan-400" /> Platform Berbagi Materi Terpercaya
+                                            </span>
+                                            <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none max-w-5xl mx-auto">
+                                                Semua Materi Workshop dalam <span className="bg-gradient-to-r from-violet-400 via-indigo-300 to-cyan-400 bg-clip-text text-transparent">Satu Portal Modern</span>
+                                            </h1>
+                                            <p className="mt-8 text-lg sm:text-xl text-slate-400 max-w-3xl mx-auto font-normal leading-relaxed">
+                                                Dapatkan materi, modul, presentasi, dan sumber belajar workshop dengan mudah melalui satu akun terverifikasi.
+                                            </p>
+
+                                            <div className="mt-10 flex flex-wrap justify-center gap-4">
+                                                {currentUser ? (
+                                                    <button 
+                                                        onClick={() => setActiveTab(currentUser.role === 'admin' ? 'admin' : 'dashboard')}
+                                                        className="px-8 py-4 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/25 transition flex items-center space-x-2"
+                                                    >
+                                                        <span>Buka Dashboard</span>
+                                                        <Icon name="arrow-right" className="w-5 h-5" />
+                                                    </button>
+                                                ) : (
+                                                    <>
+                                                        <button 
+                                                            onClick={() => setAuthModal({ open: true, mode: 'register' })}
+                                                            className="px-8 py-4 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-2xl shadow-xl shadow-indigo-500/25 transition flex items-center space-x-2"
+                                                        >
+                                                            <span>Daftar Sekarang</span>
+                                                            <Icon name="user-plus" className="w-5 h-5" />
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => setAuthModal({ open: true, mode: 'login' })}
+                                                            className="px-8 py-4 bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-2xl shadow-sm hover:bg-slate-800 transition"
+                                                        >
+                                                            Masuk Ke Akun
+                                                        </button>
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-20 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+                                                <div className="p-6 rounded-2xl glass-card flex items-center space-x-4 text-left">
+                                                    <div className="p-3.5 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                                                        <Icon name="book-open" className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-white text-sm">📚 Materi Terstruktur</div>
+                                                        <div className="text-xs text-slate-400 mt-0.5">Rapi & Terkategori</div>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 rounded-2xl glass-card flex items-center space-x-4 text-left">
+                                                    <div className="p-3.5 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                        <Icon name="shield-check" className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-white text-sm">🔐 Akses Aman</div>
+                                                        <div className="text-xs text-slate-400 mt-0.5">Otentikasi Terjamin</div>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 rounded-2xl glass-card flex items-center space-x-4 text-left">
+                                                    <div className="p-3.5 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                        <Icon name="download-cloud" className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-white text-sm">📥 Download Mudah</div>
+                                                        <div className="text-xs text-slate-400 mt-0.5">Langsung Simpan File</div>
+                                                    </div>
+                                                </div>
+                                                <div className="p-6 rounded-2xl glass-card flex items-center space-x-4 text-left">
+                                                    <div className="p-3.5 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                        <Icon name="smartphone" className="w-6 h-6" />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold text-white text-sm">📱 Responsif Device</div>
+                                                        <div className="text-xs text-slate-400 mt-0.5">HP & Laptop Sync</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10">
+                                            <div>
+                                                <h2 className="text-3xl font-extrabold text-white">Materi Workshop Terbaru</h2>
+                                                <p className="text-slate-400 mt-1 text-sm">Unduh presentasi, modul pelatihan, dan contoh berkas proyek.</p>
+                                            </div>
+                                            <button 
+                                                onClick={() => setActiveTab('materi')} 
+                                                className="mt-4 md:mt-0 text-cyan-400 font-bold text-sm hover:underline flex items-center space-x-1"
+                                            >
+                                                <span>Lihat Semua Materi</span>
+                                                <Icon name="arrow-right" className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {materials.slice(0, 3).map(mat => (
+                                                <div key={mat.id} className="glass-card rounded-3xl overflow-hidden hover:shadow-2xl transition duration-300 flex flex-col justify-between group">
+                                                    <div>
+                                                        <div className="h-48 w-full bg-slate-800 overflow-hidden relative">
+                                                            <img src={mat.thumbnail_url} alt={mat.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                                            <span className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-cyan-300 text-xs px-3 py-1 rounded-full font-bold border border-cyan-500/30">
+                                                                {mat.category}
+                                                            </span>
+                                                        </div>
+                                                        <div className="p-6">
+                                                            <h3 className="font-bold text-white text-lg line-clamp-2 hover:text-cyan-400 transition cursor-pointer" onClick={() => setSelectedMaterial(mat)}>
+                                                                {mat.title}
+                                                            </h3>
+                                                            <p className="text-slate-400 text-xs mt-2 line-clamp-2 leading-relaxed">{mat.description}</p>
+                                                            
+                                                            <div className="mt-4 pt-4 border-t border-slate-800 flex items-center space-x-2 text-slate-400 text-xs">
+                                                                <Icon name="user" className="w-4 h-4 text-indigo-400" />
+                                                                <span>{mat.presenter}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="px-6 pb-6 pt-2 flex items-center justify-between border-t border-slate-800/60">
+                                                        <span className="text-xs font-mono text-slate-400">{mat.file_type} • {mat.file_size}</span>
+                                                        <button 
+                                                            onClick={() => handleDownload(mat)}
+                                                            className="px-4 py-2 bg-indigo-600/30 hover:bg-indigo-600 border border-indigo-500/40 text-indigo-200 hover:text-white text-xs font-bold rounded-xl transition flex items-center space-x-1.5"
+                                                        >
+                                                            <Icon name="download" className="w-4 h-4" />
+                                                            <span>Unduh</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </section>
+                                </div>
+                            )}
+
+                            {activeTab === 'materi' && (
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                                    <div className="mb-8">
+                                        <h1 className="text-3xl font-black text-white">Daftar Materi Workshop</h1>
+                                        <p className="text-slate-400 mt-1 text-sm">Temukan dan unduh dokumen presentasi, tutorial, serta modul pembelajaran.</p>
+                                    </div>
+
+                                    <div className="glass-panel rounded-3xl p-4 mb-8 flex flex-col lg:flex-row gap-4 justify-between items-stretch">
+                                        <div className="relative flex-1">
+                                            <div className="absolute left-4 top-3.5 text-slate-400">
+                                                <Icon name="search" className="w-5 h-5" />
+                                            </div>
+                                            <input 
+                                                type="text"
+                                                placeholder="Cari judul materi, pemateri, atau deskripsi..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full pl-12 pr-4 py-3 bg-slate-900/90 border border-slate-800 rounded-2xl text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            />
+                                        </div>
+
+                                        <div className="flex flex-wrap sm:flex-nowrap gap-3">
+                                            <select 
+                                                value={selectedCategory}
+                                                onChange={(e) => setSelectedCategory(e.target.value)}
+                                                className="px-4 py-3 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs font-bold text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                            >
+                                                {categories.map(cat => (
+                                                    <option key={cat} value={cat}>{cat}</option>
+                                                ))}
+                                            </select>
+
+                                            <select 
+                                                value={sortBy}
+                                                onChange={(e) => setSortBy(e.target.value)}
+                                                className="px-4 py-3 bg-slate-900/90 border border-slate-800 rounded-2xl text-xs font-bold text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer"
+                                            >
+                                                <option value="terbaru">Terbaru</option>
+                                                <option value="terlama">Terlama</option>
+                                                <option value="title">Judul (A-Z)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {filteredMaterials.length > 0 ? (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                            {filteredMaterials.map(mat => (
+                                                <div key={mat.id} className="glass-card rounded-3xl overflow-hidden hover:shadow-2xl transition duration-300 flex flex-col justify-between group">
+                                                    <div>
+                                                        <div className="h-48 w-full bg-slate-800 overflow-hidden relative">
+                                                            <img src={mat.thumbnail_url} alt={mat.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                                            <span className="absolute top-3 left-3 bg-slate-900/90 backdrop-blur-md text-cyan-300 text-xs px-3 py-1 rounded-full font-bold border border-cyan-500/30">
+                                                                {mat.category}
+                                                            </span>
+                                                        </div>
+                                                        <div className="p-6">
+                                                            <h3 className="font-bold text-white text-lg hover:text-cyan-400 transition cursor-pointer line-clamp-2" onClick={() => setSelectedMaterial(mat)}>
+                                                                {mat.title}
+                                                            </h3>
+                                                            <p className="text-slate-400 text-xs mt-2 line-clamp-3 leading-relaxed">{mat.description}</p>
+                                                            
+                                                            <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-slate-400 text-xs">
+                                                                <div className="flex items-center space-x-2">
+                                                                    <Icon name="user-check" className="w-4 h-4 text-indigo-400" />
+                                                                    <span className="font-semibold text-slate-300">{mat.presenter}</span>
+                                                                </div>
+                                                                <div className="flex items-center justify-between text-slate-500">
+                                                                    <span>Rilis: {mat.created_at}</span>
+                                                                    <span className="px-2 py-0.5 rounded bg-slate-800 text-cyan-400 font-mono font-bold text-[10px]">
+                                                                        {mat.file_type} ({mat.file_size})
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="p-6 pt-0 flex gap-2">
+                                                        <button 
+                                                            onClick={() => setSelectedMaterial(mat)}
+                                                            className="flex-1 py-3 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition text-center"
+                                                        >
+                                                            Lihat Detail
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleDownload(mat)}
+                                                            className="flex-1 py-3 px-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-1.5"
+                                                        >
+                                                            <Icon name="download" className="w-4 h-4" />
+                                                            <span>Unduh File</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <div className="glass-card rounded-3xl p-12 text-center max-w-lg mx-auto">
+                                            <div className="w-16 h-16 bg-slate-800 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-4">
+                                                <Icon name="search-x" className="w-8 h-8" />
+                                            </div>
+                                            <h3 className="font-bold text-white text-lg">Materi Tidak Ditemukan</h3>
+                                            <p className="text-slate-400 text-xs mt-1">Coba gunakan kata kunci lain atau ubah filter pencarian Anda.</p>
+                                            <button 
+                                                onClick={() => { setSearchTerm(''); setSelectedCategory('Semua'); }}
+                                                className="mt-4 px-4 py-2 bg-indigo-600/20 text-indigo-300 rounded-xl text-xs font-bold hover:bg-indigo-600/30 transition border border-indigo-500/30"
+                                            >
+                                                Reset Filter
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
+                            {activeTab === 'dashboard' && currentUser && (
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                                    <div className="glass-panel rounded-3xl p-8 text-white mb-10 relative overflow-hidden">
+                                        <div className="relative z-10">
+                                            <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-cyan-300 text-xs font-bold border border-indigo-500/30">
+                                                Dashboard Peserta
+                                            </span>
+                                            <h1 className="text-3xl sm:text-4xl font-black mt-3">
+                                                Selamat datang, {currentUser.full_name} 👋
+                                            </h1>
+                                            <p className="text-slate-400 text-sm mt-2 max-w-xl">
+                                                Akses seluruh berkas workshop, lacak riwayat download Anda, dan kelola informasi akun secara mandiri.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                                        <div className="glass-card rounded-2xl p-6 flex items-center space-x-4">
+                                            <div className="p-4 rounded-xl bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                                                <Icon name="folder-check" className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Materi Tersedia</div>
+                                                <div className="text-2xl font-black text-white mt-0.5">{materials.filter(m => m.is_active).length}</div>
+                                            </div>
+                                        </div>
+                                        <div className="glass-card rounded-2xl p-6 flex items-center space-x-4">
+                                            <div className="p-4 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                                                <Icon name="download" className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Sudah Di-download</div>
+                                                <div className="text-2xl font-black text-white mt-0.5">
+                                                    {downloads.filter(d => d.user_id === currentUser.id).length}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="glass-card rounded-2xl p-6 flex items-center space-x-4">
+                                            <div className="p-4 rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                                                <Icon name="building" className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Instansi</div>
+                                                <div className="text-sm font-bold text-white mt-0.5 truncate max-w-[140px]">{currentUser.institution}</div>
+                                            </div>
+                                        </div>
+                                        <div className="glass-card rounded-2xl p-6 flex items-center space-x-4">
+                                            <div className="p-4 rounded-xl bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                                                <Icon name="user-check" className="w-6 h-6" />
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">Status Akun</div>
+                                                <div className="text-sm font-bold text-emerald-400 mt-0.5">Terverifikasi</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex border-b border-slate-800 mb-8 space-x-6">
+                                        <button 
+                                            onClick={() => setActiveTab('dashboard')}
+                                            className="pb-3 text-sm font-bold border-b-2 border-indigo-500 text-indigo-400 flex items-center space-x-2"
+                                        >
+                                            <Icon name="layout-dashboard" className="w-4 h-4" />
+                                            <span>Ringkasan</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('materi')}
+                                            className="pb-3 text-sm font-medium text-slate-400 hover:text-white flex items-center space-x-2"
+                                        >
+                                            <Icon name="book-open" className="w-4 h-4" />
+                                            <span>Materi Workshop</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('riwayat')}
+                                            className="pb-3 text-sm font-medium text-slate-400 hover:text-white flex items-center space-x-2"
+                                        >
+                                            <Icon name="history" className="w-4 h-4" />
+                                            <span>Riwayat Download</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => setActiveTab('profil')}
+                                            className="pb-3 text-sm font-medium text-slate-400 hover:text-white flex items-center space-x-2"
+                                        >
+                                            <Icon name="user" className="w-4 h-4" />
+                                            <span>Profil Saya</span>
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        <div className="lg:col-span-2 space-y-6">
+                                            <div className="flex items-center justify-between">
+                                                <h3 className="font-bold text-white text-lg">Materi Rekomendasi</h3>
+                                                <button onClick={() => setActiveTab('materi')} className="text-xs text-cyan-400 font-bold hover:underline">Lihat Semua</button>
+                                            </div>
+                                            <div className="space-y-4">
+                                                {materials.slice(0, 3).map(mat => (
+                                                    <div key={mat.id} className="glass-card p-5 rounded-2xl flex items-center justify-between hover:border-indigo-500/40 transition">
+                                                        <div className="flex items-center space-x-4">
+                                                            <div className="w-12 h-12 rounded-xl bg-indigo-500/20 text-indigo-300 font-black text-xs flex items-center justify-center border border-indigo-500/30">
+                                                                {mat.file_type}
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-white text-sm hover:text-cyan-400 cursor-pointer" onClick={() => setSelectedMaterial(mat)}>{mat.title}</h4>
+                                                                <p className="text-xs text-slate-400 mt-1">{mat.presenter} • {mat.file_size}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button 
+                                                            onClick={() => handleDownload(mat)}
+                                                            className="p-3 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white rounded-xl transition border border-indigo-500/30"
+                                                            title="Download File"
+                                                        >
+                                                            <Icon name="download" className="w-4 h-4" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <h3 className="font-bold text-white text-lg mb-6">Aktivitas Download Saya</h3>
+                                            <div className="glass-card p-6 rounded-2xl">
+                                                {downloads.filter(d => d.user_id === currentUser.id).length > 0 ? (
+                                                    <div className="space-y-4">
+                                                        {downloads.filter(d => d.user_id === currentUser.id).slice(0, 4).map(dl => (
+                                                            <div key={dl.id} className="flex items-start space-x-3 text-xs border-b border-slate-800 pb-3 last:border-none last:pb-0">
+                                                                <div className="p-2 rounded-lg bg-emerald-500/20 text-emerald-400 shrink-0 border border-emerald-500/30">
+                                                                    <Icon name="file-check" className="w-4 h-4" />
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-semibold text-white line-clamp-1">{dl.material_title}</div>
+                                                                    <div className="text-slate-500 mt-0.5">{dl.downloaded_at}</div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-6 text-slate-500 text-xs">
+                                                        Belum ada aktivitas unduhan.
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'riwayat' && currentUser && (
+                                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                                    <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                        <div>
+                                            <h1 className="text-3xl font-black text-white">Riwayat Download</h1>
+                                            <p className="text-slate-400 text-sm mt-1">Daftar berkas materi workshop yang pernah Anda unduh.</p>
+                                        </div>
+                                        <button onClick={() => setActiveTab('materi')} className="px-5 py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-500 transition shadow-lg shadow-indigo-600/30">
+                                            + Unduh Materi Lain
+                                        </button>
+                                    </div>
+
+                                    <div className="glass-card rounded-3xl overflow-hidden">
+                                        {downloads.filter(d => d.user_id === currentUser.id).length > 0 ? (
+                                            <div className="overflow-x-auto">
+                                                <table className="w-full text-left text-sm text-slate-300">
+                                                    <thead className="bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400 uppercase font-bold">
+                                                        <tr>
+                                                            <th className="px-6 py-4">No</th>
+                                                            <th className="px-6 py-4">Judul Materi</th>
+                                                            <th className="px-6 py-4">Nama File</th>
+                                                            <th className="px-6 py-4">Waktu Download</th>
+                                                            <th className="px-6 py-4 text-right">Aksi</th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody className="divide-y divide-slate-800">
+                                                        {downloads.filter(d => d.user_id === currentUser.id).map((dl, idx) => (
+                                                            <tr key={dl.id} className="hover:bg-slate-800/40 transition">
+                                                                <td className="px-6 py-4 font-bold text-white">{idx + 1}</td>
+                                                                <td className="px-6 py-4 font-bold text-white">{dl.material_title}</td>
+                                                                <td className="px-6 py-4 font-mono text-xs text-slate-400">{dl.file_name}</td>
+                                                                <td className="px-6 py-4 text-slate-400 text-xs">{dl.downloaded_at}</td>
+                                                                <td className="px-6 py-4 text-right">
+                                                                    <button 
+                                                                        onClick={() => {
+                                                                            const mat = materials.find(m => m.id === dl.material_id);
+                                                                            if (mat) handleDownload(mat);
+                                                                            else showToast('File materi tidak tersedia.', 'error');
+                                                                        }}
+                                                                        className="px-3 py-1.5 bg-indigo-600/20 text-cyan-300 hover:bg-indigo-600 hover:text-white rounded-lg text-xs font-bold transition border border-indigo-500/30 inline-flex items-center space-x-1"
+                                                                    >
+                                                                        <Icon name="download" className="w-3.5 h-3.5" />
+                                                                        <span>Unduh Lagi</span>
+                                                                    </button>
+                                                                </td>
+                                                            </tr>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        ) : (
+                                            <div className="p-12 text-center text-slate-400">
+                                                <div className="w-12 h-12 text-slate-600 mx-auto mb-3 flex items-center justify-center">
+                                                    <Icon name="inbox" className="w-12 h-12" />
+                                                </div>
+                                                <p className="font-medium text-sm">Anda belum pernah mengunduh berkas materi.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'profil' && currentUser && (
+                                <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                                    <div className="mb-8">
+                                        <h1 className="text-3xl font-black text-white">Profil Saya</h1>
+                                        <p className="text-slate-400 text-sm mt-1">Kelola data personal dan profil instansi Anda.</p>
+                                    </div>
+
+                                    <div className="glass-card rounded-3xl p-8">
+                                        <form onSubmit={(e) => {
+                                            e.preventDefault();
+                                            showToast('Profil berhasil diperbarui.', 'success');
+                                        }} className="space-y-6">
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nama Lengkap</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={currentUser.full_name} 
+                                                    onChange={(e) => setCurrentUser({...currentUser, full_name: e.target.value})}
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Email (Terverifikasi)</label>
+                                                <input 
+                                                    type="email" 
+                                                    value={currentUser.email} 
+                                                    disabled
+                                                    className="w-full px-4 py-3 bg-slate-900/40 border border-slate-800/80 rounded-2xl text-sm text-slate-500 cursor-not-allowed"
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Asal Instansi / Sekolah</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={currentUser.institution} 
+                                                    onChange={(e) => setCurrentUser({...currentUser, institution: e.target.value})}
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                    required
+                                                />
+                                            </div>
+
+                                            <div>
+                                                <label className="block text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Nomor WhatsApp</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={currentUser.whatsapp || ''} 
+                                                    onChange={(e) => setCurrentUser({...currentUser, whatsapp: e.target.value})}
+                                                    className="w-full px-4 py-3 bg-slate-900 border border-slate-800 rounded-2xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+                                                />
+                                            </div>
+
+                                            <div className="pt-4 flex justify-end">
+                                                <button type="submit" className="px-6 py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-bold rounded-2xl shadow-lg shadow-indigo-600/30 transition">
+                                                    Simpan Perubahan
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'admin' && currentUser && currentUser.role === 'admin' && (
+                                <AdminView 
+                                    materials={materials} 
+                                    setMaterials={setMaterials}
+                                    users={users}
+                                    setUsers={setUsers}
+                                    downloads={downloads}
+                                    showToast={showToast}
+                                />
+                            )}
+                        </main>
+                    </div>
+
+                    <footer className="bg-slate-950 border-t border-slate-800/80 py-12 mt-20 text-slate-400">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+                                <div>
+                                    <div className="flex items-center space-x-2 text-white font-bold text-lg">
+                                        <Icon name="book-open-check" className="w-5 h-5 text-cyan-400" />
+                                        <span>Portal Materi Workshop</span>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1">Platform berbagi materi workshop dan seminar profesional.</p>
+                                </div>
+
+                                <div className="text-xs text-slate-500 text-center md:text-right">
+                                    <p>© 2026 Portal Materi Workshop. All rights reserved.</p>
+                                    <p className="mt-1">Disusun oleh Pemateri Workshop & Tim IT.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </footer>
+
+                    {authModal.open && (
+                        <AuthModal 
+                            mode={authModal.mode} 
+                            setMode={(mode) => setAuthModal({ ...authModal, mode })}
+                            onClose={() => setAuthModal({ open: false, mode: 'login' })}
+                            onLoginSuccess={(user) => {
+                                setCurrentUser(user);
+                                setAuthModal({ open: false, mode: 'login' });
+                                showToast(`Selamat datang kembali, ${user.full_name}!`, 'success');
+                                setActiveTab(user.role === 'admin' ? 'admin' : 'dashboard');
+                            }}
+                            onRegisterSuccess={(newUser) => {
+                                setUsers(prev => [newUser, ...prev]);
+                                setCurrentUser(newUser);
+                                setAuthModal({ open: false, mode: 'login' });
+                                sendDataToGoogleSheet({
+                                    type: 'REGISTRATION',
+                                    full_name: newUser.full_name,
+                                    email: newUser.email,
+                                    institution: newUser.institution,
+                                    whatsapp: newUser.whatsapp
+                                });
+                                showToast('Pendaftaran berhasil! Akun Anda aktif & data tersinkron ke Sheet.', 'success');
+                                setActiveTab('dashboard');
+                            }}
+                            users={users}
+                            showToast={showToast}
+                        />
+                    )}
+
+                    {selectedMaterial && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+                            <div className="glass-card rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-slate-700">
+                                <div className="h-60 w-full bg-slate-900 relative">
+                                    <img src={selectedMaterial.thumbnail_url} alt={selectedMaterial.title} className="w-full h-full object-cover" />
+                                    <button 
+                                        onClick={() => setSelectedMaterial(null)}
+                                        className="absolute top-4 right-4 p-2 rounded-full bg-slate-950/70 text-white hover:bg-slate-900 transition"
+                                    >
+                                        <Icon name="x" className="w-5 h-5" />
+                                    </button>
+                                    <span className="absolute bottom-4 left-4 bg-indigo-600 text-white text-xs px-3 py-1 rounded-full font-bold shadow-md">
+                                        {selectedMaterial.category}
+                                    </span>
+                                </div>
+
+                                <div className="p-8">
+                                    <h2 className="text-2xl font-bold text-white">{selectedMaterial.title}</h2>
+                                    <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                                        <span className="flex items-center space-x-1">
+                                            <Icon name="user" className="w-4 h-4 text-cyan-400" />
+                                            <span className="font-semibold text-slate-200">{selectedMaterial.presenter}</span>
+                                        </span>
+                                        <span>•</span>
+                                        <span>Format: <b className="text-slate-200">{selectedMaterial.file_type}</b></span>
+                                        <span>•</span>
+                                        <span>Ukuran: <b className="text-slate-200">{selectedMaterial.file_size}</b></span>
+                                    </div>
+
+                                    <div className="mt-6 border-t border-slate-800 pt-6">
+                                        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Deskripsi Materi</h4>
+                                        <p className="text-slate-300 text-sm leading-relaxed whitespace-pre-line">{selectedMaterial.description}</p>
+                                    </div>
+
+                                    <div className="mt-8 flex gap-3">
+                                        <button 
+                                            onClick={() => setSelectedMaterial(null)}
+                                            className="px-5 py-3 border border-slate-800 text-slate-400 rounded-2xl text-xs font-bold hover:bg-slate-800 transition"
+                                        >
+                                            Tutup
+                                        </button>
+                                        <button 
+                                            onClick={() => {
+                                                const mat = selectedMaterial;
+                                                setSelectedMaterial(null);
+                                                handleDownload(mat);
+                                            }}
+                                            className="flex-1 py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-90 text-white text-xs font-bold rounded-2xl shadow-lg shadow-indigo-600/30 transition flex items-center justify-center space-x-2"
+                                        >
+                                            <Icon name="download" className="w-4 h-4" />
+                                            <span>📥 DOWNLOAD MATERI SEKARANG</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {showCodeGsModal && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="glass-panel rounded-3xl max-w-3xl w-full p-8 shadow-2xl max-h-[90vh] flex flex-col justify-between">
+                                <div>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center space-x-2 text-emerald-400 font-bold text-lg">
+                                            <Icon name="sheet" className="w-6 h-6" />
+                                            <span>Integrasi Google Sheets (Code.gs)</span>
+                                        </div>
+                                        <button onClick={() => setShowCodeGsModal(false)} className="text-slate-400 hover:text-white">
+                                            <Icon name="x" className="w-5 h-5" />
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-slate-400 mb-2">
+                                        Untuk memperbaiki error <b>"Script function not found: doGet"</b>, pastikan Anda memperbarui kode di <b>Extensions &gt; Apps Script</b> spreadsheet Anda dengan skrip di bawah ini:
+                                    </p>
+                                    <pre className="bg-slate-950 text-emerald-300 p-4 rounded-2xl text-xs font-mono border border-slate-800 overflow-x-auto max-h-72 custom-scrollbar">
+                                        {GOOGLE_APPS_SCRIPT_CODE}
+                                    </pre>
+                                </div>
+                                <div className="mt-6 flex justify-between items-center pt-4 border-t border-slate-800">
+                                    <a 
+                                        href="https://docs.google.com/spreadsheets/d/1kzfZJnrB2aVfjTypg0uf3jupw0xbMibvWG6zaCOj30k/edit?usp=sharing" 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="text-xs text-cyan-400 hover:underline flex items-center space-x-1"
+                                    >
+                                        <span>Buka Spreadsheet Google</span>
+                                        <Icon name="external-link" className="w-3.5 h-3.5" />
+                                    </a>
+                                    <button 
+                                        onClick={() => {
+                                            document.execCommand('copy');
+                                            showToast('Script Code.gs (dengan doGet & doPost) disalin!', 'success');
+                                        }}
+                                        className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold hover:bg-emerald-500 transition shadow-lg shadow-emerald-600/20"
+                                    >
+                                        Salin Script
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    <Toast message={toast.message} type={toast.type} onClose={() => setToast({ message: '', type: 'success' })} />
+                </div>
+            );
+        }
+
+        function AuthModal({ mode, setMode, onClose, onLoginSuccess, onRegisterSuccess, users, showToast }) {
+            const [email, setEmail] = useState('');
+            const [password, setPassword] = useState('');
+            const [confirmPassword, setConfirmPassword] = useState('');
+            const [fullName, setFullName] = useState('');
+            const [institution, setInstitution] = useState('');
+            const [whatsapp, setWhatsapp] = useState('');
+            const [role, setRole] = useState('participant');
+            const [rememberMe, setRememberMe] = useState(true);
+
+            const handleLoginSubmit = (e) => {
+                e.preventDefault();
+                const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+                if (!user) {
+                    showToast('Email tidak terdaftar dalam sistem.', 'error');
+                    return;
+                }
+                if (password.length < 6) {
+                    showToast('Password kurang dari 6 karakter.', 'error');
+                    return;
+                }
+                onLoginSuccess(user);
+            };
+
+            const handleRegisterSubmit = (e) => {
+                e.preventDefault();
+                if (!email.includes('@')) {
+                    showToast('Format email tidak valid!', 'error');
+                    return;
+                }
+                if (password.length < 8) {
+                    showToast('Password minimal 8 karakter!', 'error');
+                    return;
+                }
+                if (password !== confirmPassword) {
+                    showToast('Konfirmasi password tidak cocok!', 'error');
+                    return;
+                }
+                if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
+                    showToast('Email sudah terdaftar sebelumnya.', 'error');
+                    return;
+                }
+
+                const newUser = {
+                    id: 'usr-' + Date.now(),
+                    full_name: fullName,
+                    email,
+                    institution,
+                    whatsapp,
+                    role,
+                    status: 'Aktif',
+                    created_at: new Date().toISOString().split('T')[0]
+                };
+
+                onRegisterSuccess(newUser);
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+                    <div className="glass-card rounded-3xl max-w-md w-full p-8 shadow-2xl relative border border-slate-700">
+                        <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-white">
+                            <Icon name="x" className="w-5 h-5" />
+                        </button>
+
+                        {mode === 'login' ? (
+                            <div>
+                                <h3 className="text-2xl font-black text-white">Masuk Ke Akun</h3>
+                                <p className="text-xs text-slate-400 mt-1">Gunakan email dan password Anda.</p>
+
+                                <div className="mt-4 p-3 bg-indigo-500/10 rounded-2xl border border-indigo-500/20 text-xs">
+                                    <div className="font-bold text-indigo-300 mb-1.5">⚡ Akun Demo Instan:</div>
+                                    <div className="flex gap-2">
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setEmail('peserta@workshop.id'); setPassword('12345678'); }}
+                                            className="px-3 py-1 bg-slate-800 text-cyan-300 rounded-lg border border-slate-700 hover:bg-slate-700 transition text-[11px] font-bold"
+                                        >
+                                            Demo Peserta
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            onClick={() => { setEmail('admin@workshop.id'); setPassword('12345678'); }}
+                                            className="px-3 py-1 bg-slate-800 text-violet-300 rounded-lg border border-slate-700 hover:bg-slate-700 transition text-[11px] font-bold"
+                                        >
+                                            Demo Admin
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <form onSubmit={handleLoginSubmit} className="mt-6 space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
+                                        <input 
+                                            type="email" 
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="nama@email.com"
+                                            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            required 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                                        <input 
+                                            type="password" 
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            placeholder="••••••••"
+                                            className="w-full px-4 py-2.5 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            required 
+                                        />
+                                    </div>
+
+                                    <div className="flex items-center justify-between text-xs">
+                                        <label className="flex items-center space-x-2 text-slate-400 cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={rememberMe} 
+                                                onChange={(e) => setRememberMe(e.target.checked)}
+                                                className="rounded bg-slate-900 border-slate-700 text-indigo-500 focus:ring-indigo-500" 
+                                            />
+                                            <span>Remember me</span>
+                                        </label>
+                                        <button type="button" onClick={() => showToast('Instruksi reset password dikirim ke email.', 'success')} className="text-cyan-400 hover:underline">
+                                            Lupa Password?
+                                        </button>
+                                    </div>
+
+                                    <button type="submit" className="w-full py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30">
+                                        Masuk
+                                    </button>
+                                </form>
+
+                                <div className="mt-6 text-center text-xs text-slate-400">
+                                    Belum punya akun?{' '}
+                                    <button onClick={() => setMode('register')} className="text-cyan-400 font-bold hover:underline">
+                                        Daftar Sekarang
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div>
+                                <h3 className="text-2xl font-black text-white">Pendaftaran Peserta</h3>
+                                <p className="text-xs text-slate-400 mt-1">Buat akun untuk mengakses seluruh materi workshop.</p>
+
+                                <form onSubmit={handleRegisterSubmit} className="mt-6 space-y-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Nama Lengkap</label>
+                                        <input 
+                                            type="text" 
+                                            value={fullName}
+                                            onChange={(e) => setFullName(e.target.value)}
+                                            placeholder="Nama dan Gelar"
+                                            className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            required 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Email</label>
+                                        <input 
+                                            type="email" 
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            placeholder="email@instansi.id"
+                                            className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            required 
+                                        />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Password</label>
+                                            <input 
+                                                type="password" 
+                                                value={password}
+                                                onChange={(e) => setPassword(e.target.value)}
+                                                placeholder="Min. 8 Karakter"
+                                                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                required 
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Konfirmasi</label>
+                                            <input 
+                                                type="password" 
+                                                value={confirmPassword}
+                                                onChange={(e) => setConfirmPassword(e.target.value)}
+                                                placeholder="Ulangi"
+                                                className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                                required 
+                                            />
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Asal Instansi</label>
+                                        <input 
+                                            type="text" 
+                                            value={institution}
+                                            onChange={(e) => setInstitution(e.target.value)}
+                                            placeholder="Contoh: SMA N 1 / Universitas X"
+                                            className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                            required 
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">WhatsApp (Opsional)</label>
+                                        <input 
+                                            type="text" 
+                                            value={whatsapp}
+                                            onChange={(e) => setWhatsapp(e.target.value)}
+                                            placeholder="081234567890"
+                                            className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Daftar Sebagai</label>
+                                        <select 
+                                            value={role} 
+                                            onChange={(e) => setRole(e.target.value)}
+                                            className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
+                                        >
+                                            <option value="participant">Peserta Workshop</option>
+                                            <option value="admin">Pemateri / Admin</option>
+                                        </select>
+                                    </div>
+
+                                    <button type="submit" className="w-full py-3 bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 hover:opacity-90 text-white font-bold rounded-xl transition shadow-lg shadow-indigo-600/30 mt-2">
+                                        Daftar Akun Baru
+                                    </button>
+                                </form>
+
+                                <div className="mt-4 text-center text-xs text-slate-400">
+                                    Sudah punya akun?{' '}
+                                    <button onClick={() => setMode('login')} className="text-cyan-400 font-bold hover:underline">
+                                        Masuk
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        function AdminView({ materials, setMaterials, users, setUsers, downloads, showToast }) {
+            const [adminSubTab, setAdminSubTab] = useState('materials');
+            const [showMaterialModal, setShowMaterialModal] = useState(false);
+            const [editingMaterial, setEditingMaterial] = useState(null);
+
+            const [matTitle, setMatTitle] = useState('');
+            const [matDesc, setMatDesc] = useState('');
+            const [matCat, setMatCat] = useState('Digitalisasi Pembelajaran');
+            const [matPresenter, setMatPresenter] = useState('');
+            const [matFileUrl, setMatFileUrl] = useState('');
+            const [matFileType, setMatFileType] = useState('PDF');
+            const [matFileSize, setMatFileSize] = useState('5.0 MB');
+            const [matThumb, setMatThumb] = useState('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80');
+            const [matActive, setMatActive] = useState(true);
+
+            const openAddModal = () => {
+                setEditingMaterial(null);
+                setMatTitle('');
+                setMatDesc('');
+                setMatCat('Digitalisasi Pembelajaran');
+                setMatPresenter('');
+                setMatFileUrl('');
+                setMatFileType('PDF');
+                setMatFileSize('4.5 MB');
+                setMatThumb('https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=600&q=80');
+                setMatActive(true);
+                setShowMaterialModal(true);
+            };
+
+            const openEditModal = (mat) => {
+                setEditingMaterial(mat);
+                setMatTitle(mat.title);
+                setMatDesc(mat.description);
+                setMatCat(mat.category);
+                setMatPresenter(mat.presenter);
+                setMatFileUrl(mat.file_url || '');
+                setMatFileType(mat.file_type);
+                setMatFileSize(mat.file_size);
+                setMatThumb(mat.thumbnail_url);
+                setMatActive(mat.is_active);
+                setShowMaterialModal(true);
+            };
+
+            const handleSaveMaterial = (e) => {
+                e.preventDefault();
+                if (editingMaterial) {
+                    setMaterials(prev => prev.map(m => m.id === editingMaterial.id ? {
+                        ...m,
+                        title: matTitle,
+                        description: matDesc,
+                        category: matCat,
+                        presenter: matPresenter,
+                        file_url: matFileUrl,
+                        file_type: matFileType,
+                        file_size: matFileSize,
+                        thumbnail_url: matThumb,
+                        is_active: matActive
+                    } : m));
+                    showToast('Materi berhasil diperbarui.', 'success');
+                } else {
+                    const newMat = {
+                        id: 'mat-' + Date.now(),
+                        title: matTitle,
+                        description: matDesc,
+                        category: matCat,
+                        presenter: matPresenter,
+                        thumbnail_url: matThumb,
+                        file_url: matFileUrl || '#file-' + Date.now(),
+                        file_name: `${matTitle.replace(/ /g, '_')}.${matFileType.toLowerCase()}`,
+                        file_type: matFileType,
+                        file_size: matFileSize,
+                        is_active: matActive,
+                        created_at: new Date().toISOString().split('T')[0]
+                    };
+                    setMaterials(prev => [newMat, ...prev]);
+                    showToast('Materi baru berhasil ditambahkan!', 'success');
+                }
+                setShowMaterialModal(false);
+            };
+
+            const handleDeleteMaterial = (id) => {
+                setMaterials(prev => prev.filter(m => m.id !== id));
+                showToast('Materi telah dihapus.', 'success');
+            };
+
+            const toggleUserStatus = (userId) => {
+                setUsers(prev => prev.map(u => u.id === userId ? {
+                    ...u,
+                    status: u.status === 'Aktif' ? 'Nonaktif' : 'Aktif'
+                } : u));
+                showToast('Status pengguna berhasil diubah.', 'success');
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+                    <div className="mb-8">
+                        <span className="px-3 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
+                            Admin Panel
+                        </span>
+                        <h1 className="text-3xl font-black text-white mt-2">Kelola Portal Materi</h1>
+                        <p className="text-slate-400 text-sm mt-1">Atur materi workshop, status peserta, dan pantau log unduhan.</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                        <div className="glass-card p-6 rounded-2xl flex items-center space-x-4">
+                            <div className="p-4 bg-indigo-500/20 text-indigo-400 rounded-xl border border-indigo-500/30">
+                                <Icon name="book-open" className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-slate-400 font-bold uppercase">Total Materi</div>
+                                <div className="text-2xl font-black text-white">{materials.length}</div>
+                            </div>
+                        </div>
+                        <div className="glass-card p-6 rounded-2xl flex items-center space-x-4">
+                            <div className="p-4 bg-emerald-500/20 text-emerald-400 rounded-xl border border-emerald-500/30">
+                                <Icon name="users" className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-slate-400 font-bold uppercase">Total Peserta</div>
+                                <div className="text-2xl font-black text-white">{users.length}</div>
+                            </div>
+                        </div>
+                        <div className="glass-card p-6 rounded-2xl flex items-center space-x-4">
+                            <div className="p-4 bg-cyan-500/20 text-cyan-400 rounded-xl border border-cyan-500/30">
+                                <Icon name="download" className="w-6 h-6" />
+                            </div>
+                            <div>
+                                <div className="text-xs text-slate-400 font-bold uppercase">Total Unduhan</div>
+                                <div className="text-2xl font-black text-white">{downloads.length}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex border-b border-slate-800 mb-6 space-x-6">
+                        <button 
+                            onClick={() => setAdminSubTab('materials')}
+                            className={`pb-3 text-sm font-bold border-b-2 ${adminSubTab === 'materials' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                        >
+                            Kelola Materi ({materials.length})
+                        </button>
+                        <button 
+                            onClick={() => setAdminSubTab('users')}
+                            className={`pb-3 text-sm font-bold border-b-2 ${adminSubTab === 'users' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                        >
+                            Kelola Peserta ({users.length})
+                        </button>
+                        <button 
+                            onClick={() => setAdminSubTab('downloads')}
+                            className={`pb-3 text-sm font-bold border-b-2 ${adminSubTab === 'downloads' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                        >
+                            Log Unduhan ({downloads.length})
+                        </button>
+                        <button 
+                            onClick={() => setAdminSubTab('rls')}
+                            className={`pb-3 text-sm font-bold border-b-2 ${adminSubTab === 'rls' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400'}`}
+                        >
+                            Supabase RLS Schema
+                        </button>
+                    </div>
+
+                    {adminSubTab === 'materials' && (
+                        <div>
+                            <div className="flex justify-between items-center mb-6">
+                                <h3 className="text-lg font-bold text-white">Daftar Materi Workshop</h3>
+                                <button onClick={openAddModal} className="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition flex items-center space-x-2 shadow-lg shadow-indigo-600/30">
+                                    <Icon name="plus" className="w-4 h-4" />
+                                    <span>Tambah Materi Baru</span>
+                                </button>
+                            </div>
+
+                            <div className="glass-card rounded-3xl overflow-hidden">
+                                <table className="w-full text-left text-sm text-slate-300">
+                                    <thead className="bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400 uppercase font-bold">
+                                        <tr>
+                                            <th className="px-6 py-4">Materi & Kategori</th>
+                                            <th className="px-6 py-4">Pemateri</th>
+                                            <th className="px-6 py-4">Format File</th>
+                                            <th className="px-6 py-4">Status</th>
+                                            <th className="px-6 py-4 text-right">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-800">
+                                        {materials.map(mat => (
+                                            <tr key={mat.id} className="hover:bg-slate-800/40 transition">
+                                                <td className="px-6 py-4">
+                                                    <div className="font-bold text-white">{mat.title}</div>
+                                                    <span className="inline-block mt-1 text-[11px] font-bold text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">
+                                                        {mat.category}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-slate-300 font-medium">{mat.presenter}</td>
+                                                <td className="px-6 py-4 font-mono text-xs text-slate-400">{mat.file_type} ({mat.file_size})</td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${mat.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                                                        {mat.is_active ? 'Aktif' : 'Nonaktif'}
+                                                    </span>
+                                                </td>
+                                                <td className="px-6 py-4 text-right space-x-2">
+                                                    <button onClick={() => openEditModal(mat)} className="p-2 text-slate-400 hover:text-cyan-400 hover:bg-slate-800 rounded-lg transition" title="Edit">
+                                                        <Icon name="edit-3" className="w-4 h-4" />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteMaterial(mat.id)} className="p-2 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition" title="Hapus">
+                                                        <Icon name="trash-2" className="w-4 h-4" />
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    )}
+
+                    {adminSubTab === 'users' && (
+                        <div className="glass-card rounded-3xl overflow-hidden">
+                            <table className="w-full text-left text-sm text-slate-300">
+                                <thead className="bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400 uppercase font-bold">
+                                    <tr>
+                                        <th className="px-6 py-4">Nama Peserta</th>
+                                        <th className="px-6 py-4">Email</th>
+                                        <th className="px-6 py-4">Instansi</th>
+                                        <th className="px-6 py-4">Role</th>
+                                        <th className="px-6 py-4">Status</th>
+                                        <th className="px-6 py-4 text-right">Aksi</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {users.map(usr => (
+                                        <tr key={usr.id} className="hover:bg-slate-800/40 transition">
+                                            <td className="px-6 py-4 font-bold text-white">{usr.full_name}</td>
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-400">{usr.email}</td>
+                                            <td className="px-6 py-4 text-slate-300">{usr.institution}</td>
+                                            <td className="px-6 py-4 capitalize font-semibold text-indigo-400">{usr.role}</td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${usr.status === 'Aktif' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-slate-800 text-slate-400'}`}>
+                                                    {usr.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button onClick={() => toggleUserStatus(usr.id)} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-bold transition border border-slate-700">
+                                                    Toggle Status
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {adminSubTab === 'downloads' && (
+                        <div className="glass-card rounded-3xl overflow-hidden">
+                            <table className="w-full text-left text-sm text-slate-300">
+                                <thead className="bg-slate-900/80 border-b border-slate-800 text-xs text-slate-400 uppercase font-bold">
+                                    <tr>
+                                        <th className="px-6 py-4">Waktu</th>
+                                        <th className="px-6 py-4">Peserta</th>
+                                        <th className="px-6 py-4">Materi Diunduh</th>
+                                        <th className="px-6 py-4">Nama File</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-800">
+                                    {downloads.map(dl => (
+                                        <tr key={dl.id} className="hover:bg-slate-800/40 transition">
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-500">{dl.downloaded_at}</td>
+                                            <td className="px-6 py-4">
+                                                <div className="font-bold text-white">{dl.user_name}</div>
+                                                <div className="text-xs text-slate-400">{dl.user_email}</div>
+                                            </td>
+                                            <td className="px-6 py-4 font-semibold text-slate-200">{dl.material_title}</td>
+                                            <td className="px-6 py-4 font-mono text-xs text-slate-400">{dl.file_name}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+
+                    {adminSubTab === 'rls' && (
+                        <div className="glass-card p-8 rounded-3xl space-y-6">
+                            <h3 className="text-xl font-bold text-white">Skema Database & Row Level Security (RLS) Supabase</h3>
+                            <p className="text-xs text-slate-400">
+                                Salin query SQL di bawah ke Supabase SQL Editor untuk membuat tabel dan keamanan data resmi.
+                            </p>
+                            <pre className="bg-slate-950 text-emerald-300 p-5 rounded-2xl text-xs font-mono border border-slate-800 overflow-x-auto custom-scrollbar">
+{`-- 1. TABEL PROFILES
+CREATE TABLE public.profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name TEXT NOT NULL,
+  email TEXT UNIQUE NOT NULL,
+  institution TEXT NOT NULL,
+  whatsapp TEXT,
+  avatar_url TEXT,
+  role TEXT DEFAULT 'participant',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 2. TABEL MATERIALS
+CREATE TABLE public.materials (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL,
+  presenter TEXT NOT NULL,
+  thumbnail_url TEXT,
+  file_url TEXT NOT NULL,
+  file_name TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size TEXT NOT NULL,
+  is_active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 3. TABEL DOWNLOAD_HISTORY
+CREATE TABLE public.download_history (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+  material_id UUID REFERENCES public.materials(id) ON DELETE CASCADE,
+  downloaded_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ATURAN RLS (Row Level Security)
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.materials ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.download_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Public materials selectable" ON public.materials FOR SELECT USING (is_active = true);
+CREATE POLICY "Users read own profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users read own downloads" ON public.download_history FOR SELECT USING (auth.uid() = user_id);`}
+                            </pre>
+                        </div>
+                    )}
+
+                    {showMaterialModal && (
+                        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+                            <div className="glass-card rounded-3xl max-w-xl w-full p-8 shadow-2xl relative border border-slate-700">
+                                <button onClick={() => setShowMaterialModal(false)} className="absolute top-6 right-6 text-slate-400 hover:text-white">
+                                    <Icon name="x" className="w-5 h-5" />
+                                </button>
+                                <h3 className="text-2xl font-bold text-white mb-6">{editingMaterial ? 'Edit Materi' : 'Tambah Materi Baru'}</h3>
+                                
+                                <form onSubmit={handleSaveMaterial} className="space-y-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Judul Materi</label>
+                                        <input type="text" value={matTitle} onChange={(e) => setMatTitle(e.target.value)} className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Link File / URL Materi (Google Drive, Cloud Storage, dll)</label>
+                                        <input type="url" value={matFileUrl} onChange={(e) => setMatFileUrl(e.target.value)} placeholder="https://drive.google.com/... atau https://..." className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Deskripsi</label>
+                                        <textarea value={matDesc} onChange={(e) => setMatDesc(e.target.value)} rows="3" className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required></textarea>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Kategori</label>
+                                            <input type="text" value={matCat} onChange={(e) => setMatCat(e.target.value)} className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Nama Pemateri</label>
+                                            <input type="text" value={matPresenter} onChange={(e) => setMatPresenter(e.target.value)} className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                        </div>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Format File</label>
+                                            <select value={matFileType} onChange={(e) => setMatFileType(e.target.value)} className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                                                <option value="PDF">PDF</option>
+                                                <option value="PPTX">PPTX</option>
+                                                <option value="DOCX">DOCX</option>
+                                                <option value="ZIP">ZIP</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-bold text-slate-400 uppercase mb-1">Ukuran File</label>
+                                            <input type="text" value={matFileSize} onChange={(e) => setMatFileSize(e.target.value)} className="w-full px-4 py-2 bg-slate-900 border border-slate-800 rounded-xl text-sm text-white focus:ring-2 focus:ring-indigo-500 focus:outline-none" required />
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center space-x-2 pt-2">
+                                        <input type="checkbox" id="matActiveCheck" checked={matActive} onChange={(e) => setMatActive(e.target.checked)} className="rounded bg-slate-900 border-slate-700 text-indigo-500" />
+                                        <label htmlFor="matActiveCheck" className="text-xs font-bold text-slate-300">Materi Aktif (Dapat Dilihat Peserta)</label>
+                                    </div>
+
+                                    <div className="pt-4 flex justify-end space-x-3">
+                                        <button type="button" onClick={() => setShowMaterialModal(false)} className="px-5 py-2.5 border border-slate-800 text-slate-400 rounded-xl text-xs font-bold hover:bg-slate-800 transition">Batal</button>
+                                        <button type="submit" className="px-5 py-2.5 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-600/30">Simpan</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            );
+        }
+
+        const rootElement = document.getElementById('root');
+        const root = ReactDOM.createRoot(rootElement);
+        root.render(<App />);
+    </script>
+</body>
+</html>
