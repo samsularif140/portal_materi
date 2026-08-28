@@ -1529,6 +1529,31 @@ useEffect(() => {
                         thumbnail_url: matThumb,
                         is_active: matActive
                     } : m));
+const syncAdminMaterials = async (updatedMaterials) => {
+
+    showToast(
+        'Menyimpan perubahan materi ke server...',
+        'success'
+    );
+
+    const success =
+        await saveMaterialsToServer(updatedMaterials);
+
+    if (success) {
+
+        showToast(
+            '✅ Materi berhasil disimpan & tampil di public.',
+            'success'
+        );
+
+    } else {
+
+        showToast(
+            '⚠️ Materi tersimpan di browser, tetapi gagal sinkron ke server.',
+            'error'
+        );
+    }
+};
                     showToast('Materi berhasil diperbarui.', 'success');
                 } else {
                     const newMat = {
