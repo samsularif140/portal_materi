@@ -277,6 +277,39 @@ function doPost(e) {
             const [materials, setMaterials] = useState(() => {
                 const saved = localStorage.getItem('pmw_materials');
                 return saved ? JSON.parse(saved) : INITIAL_MATERIALS;
+
+useEffect(() => {
+
+    let mounted = true;
+
+    const syncMaterials = async () => {
+
+        const serverMaterials =
+            await loadMaterialsFromServer();
+
+        if (
+            mounted &&
+            Array.isArray(serverMaterials) &&
+            serverMaterials.length > 0
+        ) {
+            setMaterials(serverMaterials);
+
+            // Update localStorage lama juga
+            localStorage.setItem(
+                'pmw_materials',
+                JSON.stringify(serverMaterials)
+            );
+        }
+
+    };
+
+    syncMaterials();
+
+    return () => {
+        mounted = false;
+    };
+
+}, []);
             });
 
             const [users, setUsers] = useState(() => {
