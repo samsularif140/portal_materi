@@ -49,7 +49,6 @@
             background-color: #0b0f19;
             color: #f1f5f9;
         }
-        /* Kustom scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -73,59 +72,14 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // =========================================================================
-        // DATA VERSI & INITIAL DATA (UBAH DATA INI LANGSUNG DI GITHUB KAPAN SAJA)
-        // Naikkan DATA_VERSION (misal: "2.1", "2.2") jika ingin browser pengunjung
-        // otomatis memperbarui tampilan publik sesuai kode baru di GitHub.
+        // KONFIGURASI SUPABASE (Ganti dengan URL & Anon Key project Anda)
         // =========================================================================
-        const DATA_VERSION = "3.1";
-        const INITIAL_EVENTS = [
-            {
-                id: "ev-1",
-                title: "Workshop Desain UI/UX & Design System Modern 2026",
-                slug: "workshop-uiux-design-system-2026",
-                category: "Desain & Kreatif",
-                speaker: "Aditya Pratama, Lead Product Designer",
-                institution: "Digital Innovation Lab",
-                date: "2026-09-15",
-                time: "09:00 - 15:30 WIB",
-                location: "Online via Zoom & Figma Live",
-                is_active: true,
-                badge: "Terpopuler",
-                description: "Pelajari cara membangun Design System yang scalable, komponen varian Figma terkini, serta implementasi tokens design untuk developer handoff yang efisien.",
-                banner_url: "https://images.unsplash.com/photo-1581291518655-9523c932dede?auto=format&fit=crop&w=1200&q=80"
-            },
-            {
-                id: "ev-2",
-                title: "Masterclass Full-Stack Web: Modern React & Supabase",
-                slug: "masterclass-fullstack-react-supabase",
-                category: "Pemrograman",
-                speaker: "Rian Hidayat, Senior Software Architect",
-                institution: "Tech Academy Indonesia",
-                date: "2026-09-20",
-                time: "13:00 - 17:00 WIB",
-                location: "Hybrid (Auditorium Gedung Utama & Live Stream)",
-                is_active: true,
-                badge: "Sertifikasi",
-                description: "Bedah tuntas integrasi React, arsitektur database modern, autentikasi aman, Realtime database, dan teknik deployment bebas hambatan.",
-                banner_url: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=1200&q=80"
-            },
-            {
-                id: "ev-3",
-                title: "Seminar Strategi AI & Automasi Produktivitas Kantor",
-                slug: "seminar-ai-produktivitas-2026",
-                category: "Teknologi & Bisnis",
-                speaker: "Siti Nurhaliza, AI Transformation Consultant",
-                institution: "FutureWork Consultant",
-                date: "2026-09-28",
-                time: "10:00 - 12:30 WIB",
-                location: "Online Webinar",
-                is_active: true,
-                badge: "Gratis",
-                description: "Optimalkan alur kerja bisnis harian dengan Generative AI, pembuatan prompt otomatis, dan integrasi workflow no-code terkini.",
-                banner_url: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=1200&q=80"
-            }
-        ];
+        const SUPABASE_URL = 'https://supabase.com/dashboard/project/lrblzcblgbpasujkkfut'; // Diambil dari dashboard Anda
+        const SUPABASE_ANON_KEY = 'lrblzcblgbpasujkkfut'; // Masukkan Anon / Public Key Supabase Anda di sini
+        
+        const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+        const DATA_VERSION = "3.2-supabase";
         const INITIAL_MATERIALS = [
             // Materi Event 1 (UI/UX)
             {
@@ -167,7 +121,6 @@
                 is_locked: false,
                 download_count: 89
             },
-
             // Materi Event 2 (React & Supabase)
             {
                 id: "mat-4",
@@ -208,7 +161,6 @@
                 is_locked: false,
                 download_count: 95
             },
-
             // Materi Event 3 (AI & Bisnis)
             {
                 id: "mat-7",
@@ -259,30 +211,23 @@
             }
         };
 
-        // ==========================================
-        // KOMPONEN UTAMA APLIKASI
-        // ==========================================
         function App() {
-            // State Navigasi
-            const [currentView, setCurrentView] = useState('home'); // 'home' | 'event-detail' | 'admin'
+            const [currentView, setCurrentView] = useState('home');
             const [selectedEventId, setSelectedEventId] = useState(null);
 
-            // State Data
             const [events, setEvents] = useState([]);
             const [materials, setMaterials] = useState([]);
 
-            // State Pencarian & Filter
             const [searchQuery, setSearchQuery] = useState('');
             const [selectedCategory, setSelectedCategory] = useState('Semua');
             const [selectedType, setSelectedType] = useState('Semua');
 
-            // State Admin & Modal
+            // State Admin (Sembunyikan fitur admin jika belum login)
             const [isAdmin, setIsAdmin] = useState(false);
             const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
             const [adminPasswordInput, setAdminPasswordInput] = useState('');
             const [adminError, setAdminError] = useState('');
 
-            // Modal CRUD Event & Material
             const [showEventModal, setShowEventModal] = useState(false);
             const [editingEvent, setEditingEvent] = useState(null);
             const [eventFormData, setEventFormData] = useState({
@@ -313,7 +258,6 @@
                 is_locked: false
             });
 
-            // Toast Alert
             const [toast, setToast] = useState(null);
 
             const showToast = (message, type = 'success') => {
@@ -321,75 +265,59 @@
                 setTimeout(() => setToast(null), 3500);
             };
 
-            // Inisialisasi Data & Auto-Sync dengan Versi Kode GitHub
+            // Ambil data event dari Supabase saat aplikasi pertama dimuat
             useEffect(() => {
-                const savedVersion = localStorage.getItem('portal_materi_version');
-                const savedEvents = localStorage.getItem('portal_materi_events');
-                const savedMaterials = localStorage.getItem('portal_materi_materials');
+                fetchEventsFromSupabase();
 
-                // Jika versi di kode berbeda atau data kosong, gunakan data langsung dari kode GitHub
-                if (savedVersion !== DATA_VERSION || !savedEvents || !savedMaterials) {
-                    setEvents(INITIAL_EVENTS);
+                const savedMaterials = localStorage.getItem('portal_materi_materials');
+                if (!savedMaterials) {
                     setMaterials(INITIAL_MATERIALS);
-                    localStorage.setItem('portal_materi_version', DATA_VERSION);
-                    localStorage.setItem('portal_materi_events', JSON.stringify(INITIAL_EVENTS));
                     localStorage.setItem('portal_materi_materials', JSON.stringify(INITIAL_MATERIALS));
                 } else {
-                    try {
-                        setEvents(JSON.parse(savedEvents));
-                        setMaterials(JSON.parse(savedMaterials));
-                    } catch (e) {
-                        setEvents(INITIAL_EVENTS);
-                        setMaterials(INITIAL_MATERIALS);
-                    }
+                    try { setMaterials(JSON.parse(savedMaterials)); } catch (e) { setMaterials(INITIAL_MATERIALS); }
                 }
             }, []);
 
-            // Render Ikon Lucide secara reaktif setiap kali view/state berubah
+            // Fungsi Fetch Data dari Supabase
+            const fetchEventsFromSupabase = async () => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('events')
+                        .select('*')
+                        .order('date', { ascending: false });
+
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        setEvents(data);
+                    }
+                } catch (error) {
+                    console.error('Gagal mengambil data Supabase:', error.message);
+                    showToast('Gagal memuat data dari database Supabase', 'error');
+                }
+            };
+
             useEffect(() => {
                 if (window.lucide) {
                     window.lucide.createIcons();
                 }
             });
 
-            // Sinkronisasi data ke LocalStorage saat admin mengubah data
-            const saveEventsToStorage = (newEvents) => {
-                setEvents(newEvents);
-                localStorage.setItem('portal_materi_events', JSON.stringify(newEvents));
-            };
-
             const saveMaterialsToStorage = (newMaterials) => {
                 setMaterials(newMaterials);
                 localStorage.setItem('portal_materi_materials', JSON.stringify(newMaterials));
             };
 
-            // Reset manual ke data GitHub
-            const handleResetToGitHub = () => {
-                if (confirm('Kembalikan semua event dan materi ke versi asli yang ada di kode GitHub?')) {
-                    setEvents(INITIAL_EVENTS);
-                    setMaterials(INITIAL_MATERIALS);
-                    localStorage.setItem('portal_materi_version', DATA_VERSION);
-                    localStorage.setItem('portal_materi_events', JSON.stringify(INITIAL_EVENTS));
-                    localStorage.setItem('portal_materi_materials', JSON.stringify(INITIAL_MATERIALS));
-                    showToast('Data berhasil disinkronkan dengan kode GitHub!', 'success');
-                }
-            };
-
-            // Ambil Event yang Sedang Dipilih
             const selectedEvent = useMemo(() => {
                 return events.find(ev => ev.id === selectedEventId) || null;
             }, [events, selectedEventId]);
 
-            // Kategori Unik untuk Filter
             const categories = useMemo(() => {
                 const cats = new Set(events.map(e => e.category).filter(Boolean));
                 return ['Semua', ...Array.from(cats)];
             }, [events]);
 
-            // Filter Event untuk Tampilan Publik
             const filteredEvents = useMemo(() => {
                 return events.filter(event => {
-                    // Hanya tampilkan event aktif untuk publik (kecuali admin)
                     if (!isAdmin && !event.is_active) return false;
 
                     const matchSearch = (
@@ -400,12 +328,10 @@
                     );
 
                     const matchCategory = selectedCategory === 'Semua' || event.category === selectedCategory;
-
                     return matchSearch && matchCategory;
                 });
             }, [events, searchQuery, selectedCategory, isAdmin]);
 
-            // Filter Materi untuk Event Detail
             const eventMaterials = useMemo(() => {
                 if (!selectedEventId) return [];
                 return materials.filter(mat => {
@@ -416,7 +342,6 @@
                 });
             }, [materials, selectedEventId, isAdmin, selectedType]);
 
-            // Navigasi ke Detail Event
             const handleOpenEvent = (eventId) => {
                 setSelectedEventId(eventId);
                 setSelectedType('Semua');
@@ -424,7 +349,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            // Handler Salin Tautan (Aman untuk iframe / browser permissions)
             const handleCopyLink = (url, title) => {
                 try {
                     const tempInput = document.createElement('textarea');
@@ -439,7 +363,7 @@
                 }
             };
 
-            // Login Admin Sederhana (Password default: 'admin123')
+            // Login Admin (Default password: admin123)
             const handleAdminLogin = (e) => {
                 e.preventDefault();
                 if (adminPasswordInput === 'admin123' || adminPasswordInput === 'admin') {
@@ -447,38 +371,73 @@
                     setShowAdminLoginModal(false);
                     setAdminPasswordInput('');
                     setAdminError('');
-                    showToast('Selamat datang, Admin! Mode pengelola aktif.');
+                    showToast('Mode Admin aktif! Tombol kelola ditampilkan.');
                 } else {
                     setAdminError('Password salah! Coba gunakan: admin123');
                 }
             };
 
-            // Form Submit Event (Create / Edit)
-            const handleSaveEvent = (e) => {
+            // Simpan Event ke Database Supabase (Create / Update)
+            const handleSaveEvent = async (e) => {
                 e.preventDefault();
                 if (!eventFormData.title) {
                     showToast('Judul event wajib diisi', 'error');
                     return;
                 }
 
-                if (editingEvent) {
-                    const updated = events.map(ev => ev.id === editingEvent.id ? { ...eventFormData, id: editingEvent.id } : ev);
-                    saveEventsToStorage(updated);
-                    showToast('Event berhasil diperbarui!');
-                } else {
-                    const newEv = {
-                        ...eventFormData,
-                        id: 'ev-' + Date.now(),
-                        slug: eventFormData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')
-                    };
-                    saveEventsToStorage([newEv, ...events]);
-                    showToast('Event baru berhasil ditambahkan!');
+                try {
+                    if (editingEvent) {
+                        const { error } = await supabaseClient
+                            .from('events')
+                            .update({
+                                title: eventFormData.title,
+                                category: eventFormData.category,
+                                badge: eventFormData.badge,
+                                speaker: eventFormData.speaker,
+                                institution: eventFormData.institution,
+                                date: eventFormData.date || null,
+                                time: eventFormData.time,
+                                location: eventFormData.location,
+                                banner_url: eventFormData.banner_url,
+                                description: eventFormData.description,
+                                is_active: eventFormData.is_active,
+                                updated_at: new Date()
+                            })
+                            .eq('id', editingEvent.id);
+
+                        if (error) throw error;
+                        showToast('Event berhasil diperbarui di Supabase!');
+                    } else {
+                        const newId = 'ev-' + Date.now();
+                        const { error } = await supabaseClient
+                            .from('events')
+                            .insert([{
+                                id: newId,
+                                title: eventFormData.title,
+                                category: eventFormData.category,
+                                badge: eventFormData.badge,
+                                speaker: eventFormData.speaker,
+                                institution: eventFormData.institution,
+                                date: eventFormData.date || null,
+                                time: eventFormData.time,
+                                location: eventFormData.location,
+                                banner_url: eventFormData.banner_url,
+                                description: eventFormData.description,
+                                is_active: eventFormData.is_active
+                            }]);
+
+                        if (error) throw error;
+                        showToast('Event baru berhasil ditambahkan ke Supabase!');
+                    }
+
+                    fetchEventsFromSupabase();
+                    setShowEventModal(false);
+                    setEditingEvent(null);
+                } catch (error) {
+                    showToast('Gagal menyimpan ke Supabase: ' + error.message, 'error');
                 }
-                setShowEventModal(false);
-                setEditingEvent(null);
             };
 
-            // Form Submit Material (Create / Edit)
             const handleSaveMaterial = (e) => {
                 e.preventDefault();
                 if (!materialFormData.title || !materialFormData.file_url) {
@@ -503,21 +462,32 @@
                 setEditingMaterial(null);
             };
 
-            // Hapus Event
-            const handleDeleteEvent = (eventId) => {
-                if (confirm('Apakah Anda yakin ingin menghapus event ini beserta seluruh materinya?')) {
-                    const updatedEvents = events.filter(e => e.id !== eventId);
-                    const updatedMaterials = materials.filter(m => m.event_id !== eventId);
-                    saveEventsToStorage(updatedEvents);
-                    saveMaterialsToStorage(updatedMaterials);
-                    if (selectedEventId === eventId) {
-                        setCurrentView('home');
+            // Hapus Event dari Supabase
+            const handleDeleteEvent = async (eventId) => {
+                if (confirm('Hapus event ini beserta seluruh materinya dari Supabase?')) {
+                    try {
+                        const { error } = await supabaseClient
+                            .from('events')
+                            .delete()
+                            .eq('id', eventId);
+
+                        if (error) throw error;
+
+                        const updatedMaterials = materials.filter(m => m.event_id !== eventId);
+                        saveMaterialsToStorage(updatedMaterials);
+
+                        if (selectedEventId === eventId) {
+                            setCurrentView('home');
+                        }
+
+                        fetchEventsFromSupabase();
+                        showToast('Event berhasil dihapus dari database.');
+                    } catch (error) {
+                        showToast('Gagal menghapus event: ' + error.message, 'error');
                     }
-                    showToast('Event dan materi terkait berhasil dihapus');
                 }
             };
 
-            // Hapus Materi
             const handleDeleteMaterial = (materialId) => {
                 if (confirm('Hapus materi ini?')) {
                     const updated = materials.filter(m => m.id !== materialId);
@@ -526,7 +496,6 @@
                 }
             };
 
-            // Download Counter Tracker
             const handleDownloadClick = (material) => {
                 const updated = materials.map(m => {
                     if (m.id === material.id) {
@@ -550,7 +519,6 @@
                     {/* Navbar */}
                     <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-xl border-b border-slate-800/80">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                            {/* Brand Logo */}
                             <div 
                                 onClick={() => { setCurrentView('home'); setSelectedEventId(null); }}
                                 className="flex items-center space-x-3 cursor-pointer group"
@@ -573,7 +541,6 @@
                                 </div>
                             </div>
 
-                            {/* Nav Actions */}
                             <div className="flex items-center space-x-3">
                                 {currentView !== 'home' && (
                                     <button 
@@ -585,6 +552,7 @@
                                     </button>
                                 )}
 
+                                {/* HIDE ADMIN MODE: Hanya muncul jika variabel isAdmin bernilai true */}
                                 {isAdmin ? (
                                     <div className="flex items-center space-x-2 bg-indigo-950/40 border border-indigo-500/30 px-3 py-1.5 rounded-2xl">
                                         <span className="flex h-2 w-2 relative">
@@ -592,13 +560,6 @@
                                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                         </span>
                                         <span className="text-xs font-bold text-indigo-300 hidden md:inline">Mode Admin</span>
-                                        <button 
-                                            onClick={handleResetToGitHub}
-                                            title="Sinkronkan dengan kode GitHub terbaru"
-                                            className="px-2.5 py-1 text-[11px] font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition"
-                                        >
-                                            Sync GitHub
-                                        </button>
                                         <button 
                                             onClick={() => { setIsAdmin(false); showToast('Keluar dari mode admin'); }}
                                             className="p-1 text-slate-400 hover:text-rose-400 transition"
@@ -620,19 +581,15 @@
                         </div>
                     </header>
 
-                    {/* MAIN CONTENT AREA */}
+                    {/* MAIN CONTENT */}
                     <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {currentView === 'home' && (
                             <div>
-                                {/* Hero Banner */}
                                 <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-indigo-950/70 via-slate-900 to-slate-950 border border-indigo-900/30 p-8 sm:p-12 mb-10 shadow-2xl">
-                                    <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 rounded-full bg-indigo-500/10 blur-3xl pointer-events-none"></div>
-                                    <div className="absolute bottom-0 left-1/3 -mb-20 w-60 h-60 rounded-full bg-cyan-500/10 blur-3xl pointer-events-none"></div>
-                                    
                                     <div className="relative z-10 max-w-3xl">
                                         <div className="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-semibold mb-6">
                                             <i data-lucide="sparkles" className="w-4 h-4 text-indigo-400"></i>
-                                            <span>Repositori Materi Resmi Terverifikasi</span>
+                                            <span>Database Terhubung ke Supabase</span>
                                         </div>
                                         <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
                                             Akses & Unduh Materi <br className="hidden sm:inline" />
@@ -641,10 +598,9 @@
                                             </span>
                                         </h1>
                                         <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
-                                            Dapatkan slide presentasi resmi, template desain, source code praktikum, modul PDF, dan rekaman workshop dalam satu tempat yang praktis dan terstruktur.
+                                            Dapatkan slide presentasi resmi, template desain, source code praktikum, modul PDF, dan rekaman workshop dalam satu tempat.
                                         </p>
 
-                                        {/* Search Bar di Hero */}
                                         <div className="relative max-w-2xl">
                                             <i data-lucide="search" className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400"></i>
                                             <input 
@@ -652,7 +608,7 @@
                                                 value={searchQuery}
                                                 onChange={(e) => setSearchQuery(e.target.value)}
                                                 placeholder="Cari judul workshop, pemateri, atau topik pelatihan..."
-                                                className="w-full pl-12 pr-28 py-4 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition shadow-inner"
+                                                className="w-full pl-12 pr-28 py-4 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-inner"
                                             />
                                             {searchQuery && (
                                                 <button 
@@ -664,33 +620,9 @@
                                             )}
                                         </div>
                                     </div>
-
-                                    {/* Stats Info */}
-                                    <div className="mt-10 pt-8 border-t border-slate-800/80 grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                        <div>
-                                            <div className="text-2xl font-bold text-white">{events.length}</div>
-                                            <div className="text-xs text-slate-400">Event Terdaftar</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-indigo-400">{materials.length}</div>
-                                            <div className="text-xs text-slate-400">Total File Materi</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-sky-400">
-                                                {materials.reduce((acc, curr) => acc + (curr.download_count || 0), 0)}+
-                                            </div>
-                                            <div className="text-xs text-slate-400">Unduhan Materi</div>
-                                        </div>
-                                        <div>
-                                            <div className="text-2xl font-bold text-emerald-400">100%</div>
-                                            <div className="text-xs text-slate-400">Akses Langsung</div>
-                                        </div>
-                                    </div>
                                 </div>
 
-                                {/* Kategori Filter & Actions */}
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-                                    {/* Filter Kategori */}
                                     <div className="flex items-center space-x-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-none">
                                         {categories.map((cat) => (
                                             <button
@@ -707,7 +639,7 @@
                                         ))}
                                     </div>
 
-                                    {/* Tombol Tambah Event untuk Admin */}
+                                    {/* Tombol Tambah Event (Hanya Muncul Jika Admin) */}
                                     {isAdmin && (
                                         <button
                                             onClick={() => {
@@ -727,7 +659,7 @@
                                                 });
                                                 setShowEventModal(true);
                                             }}
-                                            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/20 whitespace-nowrap self-start sm:self-auto"
+                                            className="inline-flex items-center space-x-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-600/20 whitespace-nowrap"
                                         >
                                             <i data-lucide="plus-circle" className="w-4 h-4"></i>
                                             <span>Tambah Event Baru</span>
@@ -735,16 +667,10 @@
                                     )}
                                 </div>
 
-                                {/* Daftar Kartu Event */}
                                 {filteredEvents.length === 0 ? (
                                     <div className="text-center py-20 bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8">
-                                        <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-slate-800/80 flex items-center justify-center text-slate-400">
-                                            <i data-lucide="inbox" className="w-8 h-8"></i>
-                                        </div>
                                         <h3 className="text-lg font-bold text-white mb-1">Event Tidak Ditemukan</h3>
-                                        <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">
-                                            Tidak ada event yang sesuai dengan kata kunci "{searchQuery}" atau filter kategori terpilih.
-                                        </p>
+                                        <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">Tidak ada event yang sesuai.</p>
                                         <button
                                             onClick={() => { setSearchQuery(''); setSelectedCategory('Semua'); }}
                                             className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition"
@@ -759,55 +685,29 @@
                                             return (
                                                 <div 
                                                     key={event.id}
-                                                    className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/40 rounded-3xl overflow-hidden transition duration-300 flex flex-col shadow-xl hover:shadow-2xl hover:shadow-indigo-500/5"
+                                                    className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/40 rounded-3xl overflow-hidden transition duration-300 flex flex-col shadow-xl"
                                                 >
-                                                    {/* Event Cover Image */}
                                                     <div className="relative h-48 w-full overflow-hidden bg-slate-950">
                                                         <img 
                                                             src={event.banner_url || "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80"} 
                                                             alt={event.title}
                                                             className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                                            onError={(e) => {
-                                                                e.target.src = "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80";
-                                                            }}
                                                         />
                                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
-                                                        
-                                                        {/* Badges */}
                                                         <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                                                            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-600/90 text-white backdrop-blur-md shadow-md">
+                                                            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-600/90 text-white backdrop-blur-md">
                                                                 {event.category}
                                                             </span>
-                                                            {event.badge && (
-                                                                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-amber-500/90 text-slate-950 backdrop-blur-md">
-                                                                    {event.badge}
-                                                                </span>
-                                                            )}
                                                         </div>
-
-                                                        {/* Status Draft / Active Badge for Admin */}
                                                         {isAdmin && (
                                                             <div className="absolute top-4 right-4">
-                                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${event.is_active ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'}`}>
+                                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${event.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
                                                                     {event.is_active ? 'Publik' : 'Draft'}
                                                                 </span>
                                                             </div>
                                                         )}
-
-                                                        {/* Info Singkat Materi */}
-                                                        <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between text-xs text-slate-300">
-                                                            <div className="flex items-center space-x-1.5 bg-slate-900/80 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-slate-800">
-                                                                <i data-lucide="file-text" className="w-3.5 h-3.5 text-indigo-400"></i>
-                                                                <span className="font-semibold text-white">{eventMatsCount} Materi</span>
-                                                            </div>
-                                                            <div className="flex items-center space-x-1.5 bg-slate-900/80 px-2.5 py-1 rounded-lg backdrop-blur-sm border border-slate-800">
-                                                                <i data-lucide="calendar" className="w-3.5 h-3.5 text-slate-400"></i>
-                                                                <span>{event.date}</span>
-                                                            </div>
-                                                        </div>
                                                     </div>
 
-                                                    {/* Event Body */}
                                                     <div className="p-6 flex-1 flex flex-col justify-between">
                                                         <div>
                                                             <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-indigo-300 transition">
@@ -822,16 +722,16 @@
                                                             </p>
                                                         </div>
 
-                                                        {/* Action Buttons */}
                                                         <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
                                                             <button
                                                                 onClick={() => handleOpenEvent(event.id)}
-                                                                className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2 shadow-lg shadow-indigo-600/20"
+                                                                className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2"
                                                             >
                                                                 <span>Buka Materi</span>
                                                                 <i data-lucide="arrow-right" className="w-4 h-4"></i>
                                                             </button>
 
+                                                            {/* Tombol Edit/Hapus Event (Hanya Muncul Jika Admin) */}
                                                             {isAdmin && (
                                                                 <div className="flex items-center space-x-1">
                                                                     <button
@@ -840,15 +740,15 @@
                                                                             setEventFormData({ ...event });
                                                                             setShowEventModal(true);
                                                                         }}
-                                                                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl transition"
-                                                                        title="Edit Event"
+                                                                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl"
+                                                                        title="Edit"
                                                                     >
                                                                         <i data-lucide="edit-3" className="w-4 h-4"></i>
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleDeleteEvent(event.id)}
-                                                                        className="p-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-xl transition"
-                                                                        title="Hapus Event"
+                                                                        className="p-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-xl"
+                                                                        title="Hapus"
                                                                     >
                                                                         <i data-lucide="trash-2" className="w-4 h-4"></i>
                                                                     </button>
@@ -864,595 +764,170 @@
                             </div>
                         )}
 
-                        {/* DETAIL EVENT VIEW */}
                         {currentView === 'event-detail' && selectedEvent && (
                             <div>
-                                {/* Breadcrumb & Kembali */}
                                 <div className="flex items-center justify-between mb-6">
                                     <button 
                                         onClick={() => setCurrentView('home')}
                                         className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-white transition group bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800"
                                     >
-                                        <i data-lucide="arrow-left" className="w-4 h-4 group-hover:-translate-x-1 transition"></i>
+                                        <i data-lucide="arrow-left" className="w-4 h-4"></i>
                                         <span>Kembali ke Beranda</span>
                                     </button>
+                                </div>
 
-                                    <div className="flex items-center space-x-2">
-                                        <button 
-                                            onClick={() => handleCopyLink(window.location.href, selectedEvent.title)}
-                                            className="inline-flex items-center space-x-1.5 px-3 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition"
+                                <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl">
+                                    <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
+                                        {selectedEvent.title}
+                                    </h1>
+                                    <p className="text-slate-300 text-sm leading-relaxed mb-6">
+                                        {selectedEvent.description}
+                                    </p>
+                                </div>
+
+                                <div className="flex justify-between items-center mb-6">
+                                    <h2 className="text-xl font-bold text-white">Berkas & Materi Workshop</h2>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => {
+                                                setEditingMaterial(null);
+                                                setMaterialFormData({
+                                                    event_id: selectedEvent.id,
+                                                    title: '',
+                                                    type: 'pdf',
+                                                    speaker: selectedEvent.speaker,
+                                                    description: '',
+                                                    file_url: '',
+                                                    file_size: '5 MB',
+                                                    is_active: true,
+                                                    is_locked: false
+                                                });
+                                                setShowMaterialModal(true);
+                                            }}
+                                            className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold"
                                         >
-                                            <i data-lucide="share-2" className="w-3.5 h-3.5 text-indigo-400"></i>
-                                            <span>Bagikan Event</span>
+                                            Tambah Materi
                                         </button>
-                                    </div>
+                                    )}
                                 </div>
 
-                                {/* Event Header Banner */}
-                                <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 relative overflow-hidden shadow-2xl">
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                                        <div className="lg:col-span-2">
-                                            <div className="flex flex-wrap items-center gap-2 mb-4">
-                                                <span className="px-3 py-1 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                                    {selectedEvent.category}
-                                                </span>
-                                                {selectedEvent.badge && (
-                                                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                                                        {selectedEvent.badge}
-                                                    </span>
-                                                )}
-                                                {isAdmin && (
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-bold ${selectedEvent.is_active ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                                        {selectedEvent.is_active ? 'Status: Publik' : 'Status: Draft'}
-                                                    </span>
-                                                )}
-                                            </div>
-
-                                            <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-                                                {selectedEvent.title}
-                                            </h1>
-
-                                            <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                                                {selectedEvent.description}
-                                            </p>
-
-                                            {/* Meta Info Grid */}
-                                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800 text-xs">
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-                                                        <i data-lucide="user-check" className="w-4 h-4"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Pemateri</div>
-                                                        <div className="font-bold text-white">{selectedEvent.speaker}</div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
-                                                        <i data-lucide="calendar" className="w-4 h-4"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Tanggal & Waktu</div>
-                                                        <div className="font-bold text-white">{selectedEvent.date}</div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center space-x-3">
-                                                    <div className="w-8 h-8 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                                                        <i data-lucide="map-pin" className="w-4 h-4"></i>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Platform / Lokasi</div>
-                                                        <div className="font-bold text-white truncate">{selectedEvent.location}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Poster Samping */}
-                                        <div className="hidden lg:block relative rounded-2xl overflow-hidden border border-slate-800 h-64 bg-slate-950">
-                                            <img 
-                                                src={selectedEvent.banner_url || "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80"} 
-                                                alt={selectedEvent.title}
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Section Header Materi */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                                    <div>
-                                        <h2 className="text-xl font-bold text-white flex items-center space-x-2">
-                                            <i data-lucide="folder-down" className="w-5 h-5 text-indigo-400"></i>
-                                            <span>Berkas & Materi Workshop</span>
-                                        </h2>
-                                        <p className="text-xs text-slate-400 mt-1">Silakan unduh atau akses tautan materi di bawah ini</p>
-                                    </div>
-
-                                    {/* Action Bar Materi */}
-                                    <div className="flex items-center space-x-2">
-                                        {/* Filter Tipe Materi */}
-                                        <select 
-                                            value={selectedType}
-                                            onChange={(e) => setSelectedType(e.target.value)}
-                                            className="px-3 py-2 bg-slate-900 border border-slate-800 rounded-xl text-xs font-semibold text-slate-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                                        >
-                                            <option value="Semua">Semua Format</option>
-                                            <option value="pdf">Dokumen PDF</option>
-                                            <option value="presentation">Slide Presentasi</option>
-                                            <option value="video">Rekaman Video</option>
-                                            <option value="code">Source Code</option>
-                                            <option value="sheet">Spreadsheet</option>
-                                            <option value="certificate">Sertifikat</option>
-                                            <option value="link">Resource Link</option>
-                                        </select>
-
-                                        {isAdmin && (
-                                            <button
-                                                onClick={() => {
-                                                    setEditingMaterial(null);
-                                                    setMaterialFormData({
-                                                        event_id: selectedEvent.id,
-                                                        title: '',
-                                                        type: 'pdf',
-                                                        speaker: selectedEvent.speaker,
-                                                        description: '',
-                                                        file_url: '',
-                                                        file_size: '5 MB',
-                                                        is_active: true,
-                                                        is_locked: false
-                                                    });
-                                                    setShowMaterialModal(true);
-                                                }}
-                                                className="inline-flex items-center space-x-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-md shadow-indigo-600/20"
-                                            >
-                                                <i data-lucide="plus" className="w-4 h-4"></i>
-                                                <span>Tambah Materi</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* List Kartu Materi */}
-                                {eventMaterials.length === 0 ? (
-                                    <div className="text-center py-16 bg-slate-900/30 border border-dashed border-slate-800 rounded-3xl p-6">
-                                        <i data-lucide="file-question" className="w-12 h-12 mx-auto mb-3 text-slate-500"></i>
-                                        <h3 className="text-base font-bold text-white mb-1">Materi Belum Tersedia</h3>
-                                        <p className="text-xs text-slate-400 max-w-sm mx-auto">
-                                            Pemateri belum mengunggah file untuk format ini atau materi sedang dalam proses peninjauan.
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        {eventMaterials.map((mat) => {
-                                            const typeInfo = getTypeInfo(mat.type);
-                                            return (
-                                                <div 
-                                                    key={mat.id}
-                                                    className="bg-slate-900/70 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-5 flex flex-col justify-between transition hover:shadow-xl relative group"
-                                                >
-                                                    <div>
-                                                        <div className="flex items-start justify-between gap-3 mb-3">
-                                                            <div className="flex items-center space-x-3">
-                                                                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border ${typeInfo.bg}`}>
-                                                                    <i data-lucide={typeInfo.icon} className={`w-5 h-5 ${typeInfo.color}`}></i>
-                                                                </div>
-                                                                <div>
-                                                                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>
-                                                                        {typeInfo.label}
-                                                                    </span>
-                                                                    <span className="text-[11px] text-slate-400 font-medium ml-2">
-                                                                        {mat.file_size || 'Direct Link'}
-                                                                    </span>
-                                                                </div>
-                                                            </div>
-
-                                                            {isAdmin && (
-                                                                <div className="flex items-center space-x-1">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setEditingMaterial(mat);
-                                                                            setMaterialFormData({ ...mat });
-                                                                            setShowMaterialModal(true);
-                                                                        }}
-                                                                        className="p-1.5 text-slate-400 hover:text-white bg-slate-800 rounded-lg transition"
-                                                                        title="Edit"
-                                                                    >
-                                                                        <i data-lucide="edit" className="w-3.5 h-3.5"></i>
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleDeleteMaterial(mat.id)}
-                                                                        className="p-1.5 text-rose-400 hover:text-rose-300 bg-rose-500/10 rounded-lg transition"
-                                                                        title="Hapus"
-                                                                    >
-                                                                        <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <h3 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-snug">
-                                                            {mat.title}
-                                                        </h3>
-                                                        <p className="text-xs text-slate-400 mb-4 leading-relaxed line-clamp-2">
-                                                            {mat.description}
-                                                        </p>
-                                                    </div>
-
-                                                    {/* Footer Kartu Materi */}
-                                                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between gap-3 text-xs">
-                                                        <div className="flex items-center space-x-1.5 text-slate-400 text-[11px]">
-                                                            <i data-lucide="download" className="w-3.5 h-3.5"></i>
-                                                            <span>{mat.download_count || 0} unduhan</span>
-                                                        </div>
-
-                                                        <div className="flex items-center space-x-2">
-                                                            <button
-                                                                onClick={() => handleCopyLink(mat.file_url, mat.title)}
-                                                                className="p-2 text-slate-400 hover:text-white bg-slate-800/80 hover:bg-slate-800 rounded-xl transition"
-                                                                title="Salin Tautan Materi"
-                                                            >
-                                                                <i data-lucide="copy" className="w-4 h-4"></i>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {eventMaterials.map((mat) => {
+                                        const typeInfo = getTypeInfo(mat.type);
+                                        return (
+                                            <div key={mat.id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex justify-between items-start mb-3">
+                                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>
+                                                            {typeInfo.label}
+                                                        </span>
+                                                        {isAdmin && (
+                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="text-rose-400 hover:text-rose-300">
+                                                                <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
                                                             </button>
-
-                                                            <a
-                                                                href={mat.file_url}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                onClick={() => handleDownloadClick(mat)}
-                                                                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5 transition shadow-md shadow-indigo-600/20"
-                                                            >
-                                                                <span>Unduh / Buka</span>
-                                                                <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
-                                                            </a>
-                                                        </div>
+                                                        )}
                                                     </div>
+                                                    <h3 className="text-sm font-bold text-white mb-1.5">{mat.title}</h3>
+                                                    <p className="text-xs text-slate-400 mb-4">{mat.description}</p>
                                                 </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                                <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+                                                    <span className="text-slate-400">{mat.download_count || 0} unduhan</span>
+                                                    <a
+                                                        href={mat.file_url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        onClick={() => handleDownloadClick(mat)}
+                                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5"
+                                                    >
+                                                        <span>Unduh / Buka</span>
+                                                        <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         )}
                     </main>
 
-                    {/* Footer */}
-                    <footer className="bg-slate-950 border-t border-slate-800/80 py-8 text-center text-xs text-slate-400 mt-16">
-                        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-                            <div className="flex items-center space-x-2">
-                                <i data-lucide="layers" className="w-4 h-4 text-indigo-400"></i>
-                                <span className="font-bold text-slate-300">Portal Materi Workshop</span>
-                                <span>&copy; 2026. Hak Cipta Dilindungi.</span>
-                            </div>
-                            <div className="flex items-center space-x-4 text-slate-400 text-xs">
-                                <span>Status: Publik Aktif</span>
-                                <span>•</span>
-                                <span>Data Versi {DATA_VERSION}</span>
-                            </div>
-                        </div>
-                    </footer>
-
-                    {/* ======================================================= */}
                     {/* MODAL ADMIN LOGIN */}
-                    {/* ======================================================= */}
                     {showAdminLoginModal && (
                         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl relative">
-                                <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto mb-4">
-                                    <i data-lucide="shield-check" className="w-6 h-6"></i>
-                                </div>
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl">
                                 <h3 className="text-lg font-bold text-white text-center mb-1">Akses Pengelola Data</h3>
-                                <p className="text-xs text-slate-400 text-center mb-6">
-                                    Masukkan password admin untuk menambah, mengedit, atau menghapus materi workshop.
-                                </p>
-
+                                <p className="text-xs text-slate-400 text-center mb-6">Masukkan password admin untuk mengelola event.</p>
                                 <form onSubmit={handleAdminLogin} className="space-y-4">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-300 mb-2">Password Pengelola</label>
-                                        <input 
-                                            type="password"
-                                            value={adminPasswordInput}
-                                            onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminError(''); }}
-                                            placeholder="Masukkan password..."
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                                            autoFocus
-                                        />
-                                        {adminError && <p className="text-xs text-rose-400 mt-1.5">{adminError}</p>}
-                                        <p className="text-[11px] text-slate-400 mt-1.5">Default password: <code className="text-indigo-300">admin123</code></p>
-                                    </div>
-
-                                    <div className="pt-2 flex items-center justify-end space-x-3">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => { setShowAdminLoginModal(false); setAdminError(''); }}
-                                            className="px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-white rounded-xl transition"
-                                        >
-                                            Batal
-                                        </button>
-                                        <button 
-                                            type="submit"
-                                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-indigo-600/30"
-                                        >
-                                            Masuk Admin
-                                        </button>
+                                    <input 
+                                        type="password"
+                                        value={adminPasswordInput}
+                                        onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminError(''); }}
+                                        placeholder="Password (admin123)..."
+                                        className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
+                                        autoFocus
+                                    />
+                                    {adminError && <p className="text-xs text-rose-400">{adminError}</p>}
+                                    <div className="flex justify-end space-x-3">
+                                        <button type="button" onClick={() => setShowAdminLoginModal(false)} className="px-4 py-2 text-xs text-slate-400">Batal</button>
+                                        <button type="submit" className="px-5 py-2 bg-indigo-600 text-white text-xs font-bold rounded-xl">Masuk</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* ======================================================= */}
-                    {/* MODAL TAMBAH / EDIT EVENT */}
-                    {/* ======================================================= */}
+                    {/* MODAL TAMBAH/EDIT EVENT */}
                     {showEventModal && (
                         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-xl w-full shadow-2xl my-8">
-                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-                                    <h3 className="text-lg font-bold text-white">
-                                        {editingEvent ? 'Edit Data Event' : 'Tambah Event Workshop Baru'}
-                                    </h3>
-                                    <button onClick={() => setShowEventModal(false)} className="text-slate-400 hover:text-white">
-                                        <i data-lucide="x" className="w-5 h-5"></i>
-                                    </button>
-                                </div>
-
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xl w-full my-8">
+                                <h3 className="text-lg font-bold text-white mb-4">{editingEvent ? 'Edit Event' : 'Tambah Event Baru'}</h3>
                                 <form onSubmit={handleSaveEvent} className="space-y-4 text-xs">
                                     <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">Judul Workshop / Seminar *</label>
-                                        <input 
-                                            type="text" 
-                                            required
-                                            value={eventFormData.title}
-                                            onChange={(e) => setEventFormData({ ...eventFormData, title: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="Contoh: Workshop Fullstack Web Modern 2026"
-                                        />
+                                        <label className="block font-bold text-slate-300 mb-1">Judul Event *</label>
+                                        <input type="text" required value={eventFormData.title} onChange={e => setEventFormData({...eventFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                     </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-2 gap-3">
                                         <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Kategori *</label>
-                                            <input 
-                                                type="text" 
-                                                required
-                                                value={eventFormData.category}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, category: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Desain, Pemrograman, Bisnis..."
-                                            />
+                                            <label className="block font-bold text-slate-300 mb-1">Kategori</label>
+                                            <input type="text" value={eventFormData.category} onChange={e => setEventFormData({...eventFormData, category: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                         </div>
                                         <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Label Badge (Opsional)</label>
-                                            <input 
-                                                type="text" 
-                                                value={eventFormData.badge}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, badge: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Terpopuler, Gratis, Sertifikat..."
-                                            />
+                                            <label className="block font-bold text-slate-300 mb-1">Pemateri</label>
+                                            <input type="text" value={eventFormData.speaker} onChange={e => setEventFormData({...eventFormData, speaker: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                         </div>
                                     </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Nama Pemateri *</label>
-                                            <input 
-                                                type="text" 
-                                                required
-                                                value={eventFormData.speaker}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, speaker: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Nama lengkap pemateri"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Instansi / Penyelenggara</label>
-                                            <input 
-                                                type="text" 
-                                                value={eventFormData.institution}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, institution: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Tech Academy, dsb."
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Tanggal</label>
-                                            <input 
-                                                type="date" 
-                                                value={eventFormData.date}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, date: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Waktu</label>
-                                            <input 
-                                                type="text" 
-                                                value={eventFormData.time}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, time: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="09:00 - 15:00 WIB"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Lokasi / Media</label>
-                                            <input 
-                                                type="text" 
-                                                value={eventFormData.location}
-                                                onChange={(e) => setEventFormData({ ...eventFormData, location: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Zoom / Offline"
-                                            />
-                                        </div>
-                                    </div>
-
                                     <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">URL Gambar Poster / Banner</label>
-                                        <input 
-                                            type="url" 
-                                            value={eventFormData.banner_url}
-                                            onChange={(e) => setEventFormData({ ...eventFormData, banner_url: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="https://images.unsplash.com/..."
-                                        />
+                                        <label className="block font-bold text-slate-300 mb-1">Banner URL</label>
+                                        <input type="url" value={eventFormData.banner_url} onChange={e => setEventFormData({...eventFormData, banner_url: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                     </div>
-
                                     <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">Deskripsi Lengkap Workshop</label>
-                                        <textarea 
-                                            rows="3"
-                                            value={eventFormData.description}
-                                            onChange={(e) => setEventFormData({ ...eventFormData, description: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="Jelaskan topik yang dipelajari peserta..."
-                                        ></textarea>
+                                        <label className="block font-bold text-slate-300 mb-1">Deskripsi</label>
+                                        <textarea rows="3" value={eventFormData.description} onChange={e => setEventFormData({...eventFormData, description: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"></textarea>
                                     </div>
-
-                                    <div className="flex items-center space-x-2 pt-2">
-                                        <input 
-                                            type="checkbox" 
-                                            id="eventActiveCheck"
-                                            checked={eventFormData.is_active}
-                                            onChange={(e) => setEventFormData({ ...eventFormData, is_active: e.target.checked })}
-                                            className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500"
-                                        />
-                                        <label htmlFor="eventActiveCheck" className="text-slate-300 font-medium cursor-pointer">
-                                            Publikasikan Event (Dapat Dilihat Publik)
-                                        </label>
+                                    <div className="flex items-center space-x-2">
+                                        <input type="checkbox" id="activeChk" checked={eventFormData.is_active} onChange={e => setEventFormData({...eventFormData, is_active: e.target.checked})}/>
+                                        <label htmlFor="activeChk" className="text-slate-300">Publikasikan Event</label>
                                     </div>
-
-                                    <div className="pt-4 flex justify-end space-x-3 border-t border-slate-800">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowEventModal(false)}
-                                            className="px-4 py-2.5 text-slate-400 hover:text-white rounded-xl font-bold transition"
-                                        >
-                                            Batal
-                                        </button>
-                                        <button 
-                                            type="submit"
-                                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30"
-                                        >
-                                            {editingEvent ? 'Simpan Perubahan' : 'Terbitkan Event'}
-                                        </button>
+                                    <div className="flex justify-end space-x-3 pt-4 border-t border-slate-800">
+                                        <button type="button" onClick={() => setShowEventModal(false)} className="px-4 py-2 text-slate-400">Batal</button>
+                                        <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl">Simpan</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* ======================================================= */}
-                    {/* MODAL TAMBAH / EDIT MATERI */}
-                    {/* ======================================================= */}
+                    {/* MODAL TAMBAH MATERI */}
                     {showMaterialModal && (
-                        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl my-8">
-                                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-800">
-                                    <h3 className="text-lg font-bold text-white">
-                                        {editingMaterial ? 'Edit Berkas Materi' : 'Tambah Materi Baru'}
-                                    </h3>
-                                    <button onClick={() => setShowMaterialModal(false)} className="text-slate-400 hover:text-white">
-                                        <i data-lucide="x" className="w-5 h-5"></i>
-                                    </button>
-                                </div>
-
+                        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+                            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full">
+                                <h3 className="text-lg font-bold text-white mb-4">Tambah Materi</h3>
                                 <form onSubmit={handleSaveMaterial} className="space-y-4 text-xs">
-                                    <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">Judul Materi *</label>
-                                        <input 
-                                            type="text" 
-                                            required
-                                            value={materialFormData.title}
-                                            onChange={(e) => setMaterialFormData({ ...materialFormData, title: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="Contoh: Modul PDF Sesi 1 - Fundamental"
-                                        />
-                                    </div>
-
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Tipe / Format Materi *</label>
-                                            <select 
-                                                value={materialFormData.type}
-                                                onChange={(e) => setMaterialFormData({ ...materialFormData, type: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            >
-                                                <option value="pdf">Dokumen PDF</option>
-                                                <option value="presentation">Slide Presentasi (PPT)</option>
-                                                <option value="video">Rekaman Video</option>
-                                                <option value="code">Source Code / Repo</option>
-                                                <option value="sheet">Spreadsheet (Excel/Sheets)</option>
-                                                <option value="certificate">E-Sertifikat</option>
-                                                <option value="link">Tautan Luar / Resource</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block font-bold text-slate-300 mb-1.5">Ukuran File / Keterangan</label>
-                                            <input 
-                                                type="text" 
-                                                value={materialFormData.file_size}
-                                                onChange={(e) => setMaterialFormData({ ...materialFormData, file_size: e.target.value })}
-                                                className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                                placeholder="Contoh: 12.5 MB / Video Link"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">URL File / Unduhan / Link *</label>
-                                        <input 
-                                            type="url" 
-                                            required
-                                            value={materialFormData.file_url}
-                                            onChange={(e) => setMaterialFormData({ ...materialFormData, file_url: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="https://drive.google.com/... atau https://..."
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block font-bold text-slate-300 mb-1.5">Deskripsi Singkat Materi</label>
-                                        <textarea 
-                                            rows="2"
-                                            value={materialFormData.description}
-                                            onChange={(e) => setMaterialFormData({ ...materialFormData, description: e.target.value })}
-                                            className="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white focus:ring-2 focus:ring-indigo-500 outline-none"
-                                            placeholder="Penjelasan ringkas mengenai isi file ini..."
-                                        ></textarea>
-                                    </div>
-
-                                    <div className="flex items-center space-x-2 pt-2">
-                                        <input 
-                                            type="checkbox" 
-                                            id="matActiveCheck"
-                                            checked={materialFormData.is_active}
-                                            onChange={(e) => setMaterialFormData({ ...materialFormData, is_active: e.target.checked })}
-                                            className="w-4 h-4 rounded bg-slate-950 border-slate-800 text-indigo-600 focus:ring-indigo-500"
-                                        />
-                                        <label htmlFor="matActiveCheck" className="text-slate-300 font-medium cursor-pointer">
-                                            Materi Aktif (Dapat Dilihat & Diunduh Peserta)
-                                        </label>
-                                    </div>
-
-                                    <div className="pt-4 flex justify-end space-x-3 border-t border-slate-800">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => setShowMaterialModal(false)}
-                                            className="px-4 py-2.5 text-slate-400 hover:text-white rounded-xl font-bold transition"
-                                        >
-                                            Batal
-                                        </button>
-                                        <button 
-                                            type="submit"
-                                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold transition shadow-lg shadow-indigo-600/30"
-                                        >
-                                            Simpan Materi
-                                        </button>
+                                    <input type="text" required placeholder="Judul Materi" value={materialFormData.title} onChange={e => setMaterialFormData({...materialFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                    <input type="url" required placeholder="URL File / Link" value={materialFormData.file_url} onChange={e => setMaterialFormData({...materialFormData, file_url: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                    <div className="flex justify-end space-x-3">
+                                        <button type="button" onClick={() => setShowMaterialModal(false)} className="px-4 py-2 text-slate-400">Batal</button>
+                                        <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl">Simpan</button>
                                     </div>
                                 </form>
                             </div>
@@ -1462,7 +937,6 @@
             );
         }
 
-        // Render Aplikasi ke DOM
         const rootElement = document.getElementById('root');
         const root = ReactDOM.createRoot(rootElement);
         root.render(<App />);
