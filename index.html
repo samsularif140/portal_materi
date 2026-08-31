@@ -72,16 +72,15 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         // =========================================================================
-        // KONFIGURASI SUPABASE (Ganti dengan URL & Anon Key project Anda)
+        // KONFIGURASI SUPABASE
         // =========================================================================
-        const SUPABASE_URL = 'https://lrblzcblgbpasujkkfut.supabase.co'; // Diambil dari dashboard Anda
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyYmx6Y2JsZ2JwYXN1amtrZnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMjg5NDAsImV4cCI6MjEwMzcwNDk0MH0.qW89bzX5JYEQ5r5hoZcr2PbxlhTM-YqbT3R0Q85KUVE'; // Masukkan Anon / Public Key Supabase Anda di sini
+        const SUPABASE_URL = 'https://lrblzcblgbpasujkkfut.supabase.co'; 
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxyYmx6Y2JsZ2JwYXN1amtrZnV0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODgxMjg5NDAsImV4cCI6MjEwMzcwNDk0MH0.qW89bzX5JYEQ5r5hoZcr2PbxlhTM-YqbT3R0Q85KUVE';
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         const DATA_VERSION = "3.4-supabase-cloud";
 
-        // Format Ikon Berdasarkan Tipe File
         const getTypeInfo = (type) => {
             switch(type) {
                 case 'pdf':
@@ -113,7 +112,6 @@
             const [selectedCategory, setSelectedCategory] = useState('Semua');
             const [selectedType, setSelectedType] = useState('Semua');
 
-            // State Admin (Sembunyikan fitur admin jika belum login)
             const [isAdmin, setIsAdmin] = useState(false);
             const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
             const [adminPasswordInput, setAdminPasswordInput] = useState('');
@@ -153,16 +151,14 @@
 
             const showToast = (message, type = 'success') => {
                 setToast({ message, type });
-                setTimeout(() => setToast(null), 3500);
+                setTimeout(() => setToast(null), 4000);
             };
 
-            // Ambil data event & materials dari Supabase saat aplikasi pertama dimuat
             useEffect(() => {
                 fetchEventsFromSupabase();
                 fetchMaterialsFromSupabase();
             }, []);
 
-            // Fungsi Fetch Event dari Supabase
             const fetchEventsFromSupabase = async () => {
                 try {
                     const { data, error } = await supabaseClient
@@ -171,16 +167,12 @@
                         .order('date', { ascending: false });
 
                     if (error) throw error;
-                    if (data) {
-                        setEvents(data);
-                    }
+                    if (data) setEvents(data);
                 } catch (error) {
-                    console.error('Gagal mengambil data events Supabase:', error.message);
-                    showToast('Gagal memuat data event dari Supabase', 'error');
+                    console.error('Gagal mengambil data events:', error.message);
                 }
             };
 
-            // Fungsi Fetch Materials dari Supabase
             const fetchMaterialsFromSupabase = async () => {
                 try {
                     const { data, error } = await supabaseClient
@@ -188,11 +180,9 @@
                         .select('*');
 
                     if (error) throw error;
-                    if (data) {
-                        setMaterials(data);
-                    }
+                    if (data) setMaterials(data);
                 } catch (error) {
-                    console.error('Gagal mengambil data materials Supabase:', error.message);
+                    console.error('Gagal mengambil data materials:', error.message);
                 }
             };
 
@@ -244,21 +234,6 @@
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             };
 
-            const handleCopyLink = (url, title) => {
-                try {
-                    const tempInput = document.createElement('textarea');
-                    tempInput.value = url;
-                    document.body.appendChild(tempInput);
-                    tempInput.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(tempInput);
-                    showToast(`Tautan "${title}" berhasil disalin!`);
-                } catch (err) {
-                    showToast('Gagal menyalin tautan otomatis.', 'error');
-                }
-            };
-
-            // Login Admin (Default password: admin123)
             const handleAdminLogin = (e) => {
                 e.preventDefault();
                 if (adminPasswordInput === 'admin123' || adminPasswordInput === 'admin') {
@@ -266,13 +241,12 @@
                     setShowAdminLoginModal(false);
                     setAdminPasswordInput('');
                     setAdminError('');
-                    showToast('Mode Admin aktif! Tombol kelola ditampilkan.');
+                    showToast('Mode Admin aktif!');
                 } else {
-                    setAdminError('Password salah! Coba gunakan: admin123');
+                    setAdminError('Password salah!');
                 }
             };
 
-            // Simpan Event ke Database Supabase (Create / Update)
             const handleSaveEvent = async (e) => {
                 e.preventDefault();
                 if (!eventFormData.title) {
@@ -301,7 +275,7 @@
                             .eq('id', editingEvent.id);
 
                         if (error) throw error;
-                        showToast('Event berhasil diperbarui di Supabase!');
+                        showToast('Event berhasil diperbarui!');
                     } else {
                         const newId = 'ev-' + Date.now();
                         const { error } = await supabaseClient
@@ -322,18 +296,18 @@
                             }]);
 
                         if (error) throw error;
-                        showToast('Event baru berhasil ditambahkan ke Supabase!');
+                        showToast('Event baru berhasil ditambahkan!');
                     }
 
                     fetchEventsFromSupabase();
                     setShowEventModal(false);
                     setEditingEvent(null);
                 } catch (error) {
-                    showToast('Gagal menyimpan ke Supabase: ' + error.message, 'error');
+                    showToast('Gagal simpan event: ' + error.message, 'error');
                 }
             };
 
-            // Simpan Materi ke Database Supabase (Create / Update)
+            // SIMPAN MATERI KE SUPABASE DENGAN AMAN
             const handleSaveMaterial = async (e) => {
                 e.preventDefault();
                 if (!materialFormData.title || !materialFormData.file_url) {
@@ -342,93 +316,68 @@
                 }
 
                 try {
+                    const payload = {
+                        event_id: materialFormData.event_id,
+                        title: materialFormData.title,
+                        type: materialFormData.type,
+                        speaker: materialFormData.speaker || '',
+                        description: materialFormData.description || '',
+                        file_url: materialFormData.file_url,
+                        file_size: materialFormData.file_size || '5 MB',
+                        is_active: materialFormData.is_active,
+                        is_locked: materialFormData.is_locked || false
+                    };
+
                     if (editingMaterial) {
                         const { error } = await supabaseClient
                             .from('materials')
-                            .update({
-                                title: materialFormData.title,
-                                type: materialFormData.type,
-                                speaker: materialFormData.speaker,
-                                description: materialFormData.description,
-                                file_url: materialFormData.file_url,
-                                file_size: materialFormData.file_size,
-                                is_active: materialFormData.is_active,
-                                is_locked: materialFormData.is_locked
-                            })
+                            .update(payload)
                             .eq('id', editingMaterial.id);
 
                         if (error) throw error;
                         showToast('Materi berhasil diperbarui di Supabase!');
                     } else {
                         const newMatId = 'mat-' + Date.now();
+                        payload.id = newMatId;
+                        payload.download_count = 0;
+
                         const { error } = await supabaseClient
                             .from('materials')
-                            .insert([{
-                                id: newMatId,
-                                event_id: materialFormData.event_id,
-                                title: materialFormData.title,
-                                type: materialFormData.type,
-                                speaker: materialFormData.speaker,
-                                description: materialFormData.description,
-                                file_url: materialFormData.file_url,
-                                file_size: materialFormData.file_size,
-                                is_active: materialFormData.is_active,
-                                is_locked: materialFormData.is_locked,
-                                download_count: 0
-                            }]);
+                            .insert([payload]);
 
                         if (error) throw error;
-                        showToast('Materi baru berhasil ditambahkan ke Supabase!');
+                        showToast('Materi baru berhasil disimpan ke Supabase!');
                     }
 
                     fetchMaterialsFromSupabase();
                     setShowMaterialModal(false);
                     setEditingMaterial(null);
                 } catch (error) {
-                    showToast('Gagal menyimpan materi: ' + error.message, 'error');
+                    console.error('Error simpan materi:', error);
+                    showToast('Gagal simpan materi: ' + (error.message || error.details || 'Kesalahan database'), 'error');
                 }
             };
 
-            // Hapus Event dari Supabase (beserta materinya)
             const handleDeleteEvent = async (eventId) => {
-                if (confirm('Hapus event ini beserta seluruh materinya dari Supabase?')) {
+                if (confirm('Hapus event ini beserta seluruh materinya?')) {
                     try {
-                        const { error } = await supabaseClient
-                            .from('events')
-                            .delete()
-                            .eq('id', eventId);
-
-                        if (error) throw error;
-
-                        await supabaseClient
-                            .from('materials')
-                            .delete()
-                            .eq('event_id', eventId);
-
-                        if (selectedEventId === eventId) {
-                            setCurrentView('home');
-                        }
-
+                        await supabaseClient.from('events').delete().eq('id', eventId);
+                        await supabaseClient.from('materials').delete().eq('event_id', eventId);
+                        if (selectedEventId === eventId) setCurrentView('home');
                         fetchEventsFromSupabase();
                         fetchMaterialsFromSupabase();
-                        showToast('Event berhasil dihapus dari database.');
+                        showToast('Event berhasil dihapus.');
                     } catch (error) {
                         showToast('Gagal menghapus event: ' + error.message, 'error');
                     }
                 }
             };
 
-            // Hapus Materi dari Supabase
             const handleDeleteMaterial = async (materialId) => {
-                if (confirm('Hapus materi ini dari database?')) {
+                if (confirm('Hapus materi ini?')) {
                     try {
-                        const { error } = await supabaseClient
-                            .from('materials')
-                            .delete()
-                            .eq('id', materialId);
-
+                        const { error } = await supabaseClient.from('materials').delete().eq('id', materialId);
                         if (error) throw error;
-
                         fetchMaterialsFromSupabase();
                         showToast('Materi berhasil dihapus');
                     } catch (error) {
@@ -440,11 +389,7 @@
             const handleDownloadClick = async (material) => {
                 try {
                     const newCount = (material.download_count || 0) + 1;
-                    await supabaseClient
-                        .from('materials')
-                        .update({ download_count: newCount })
-                        .eq('id', material.id);
-
+                    await supabaseClient.from('materials').update({ download_count: newCount }).eq('id', material.id);
                     fetchMaterialsFromSupabase();
                 } catch (e) {
                     console.error(e);
@@ -453,7 +398,6 @@
 
             return (
                 <div className="min-h-screen flex flex-col bg-[#0b0f19] text-slate-100">
-                    {/* Toast Notification */}
                     {toast && (
                         <div className="fixed bottom-5 right-5 z-50 flex items-center space-x-3 bg-slate-800/95 border border-slate-700 text-white px-5 py-3.5 rounded-2xl shadow-2xl backdrop-blur-md animate-bounce">
                             <i data-lucide={toast.type === 'error' ? 'alert-circle' : 'check-circle-2'} className={toast.type === 'error' ? 'w-5 h-5 text-rose-400' : 'w-5 h-5 text-emerald-400'}></i>
@@ -461,13 +405,9 @@
                         </div>
                     )}
 
-                    {/* Navbar */}
                     <header className="sticky top-0 z-40 bg-[#0b0f19]/80 backdrop-blur-xl border-b border-slate-800/80">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-                            <div 
-                                onClick={() => { setCurrentView('home'); setSelectedEventId(null); }}
-                                className="flex items-center space-x-3 cursor-pointer group"
-                            >
+                            <div onClick={() => { setCurrentView('home'); setSelectedEventId(null); }} className="flex items-center space-x-3 cursor-pointer group">
                                 <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[2px] shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition duration-300">
                                     <div className="w-full h-full bg-slate-950 rounded-[14px] flex items-center justify-center">
                                         <i data-lucide="layers" className="w-5 h-5 text-indigo-400"></i>
@@ -475,12 +415,8 @@
                                 </div>
                                 <div>
                                     <div className="flex items-center space-x-2">
-                                        <span className="font-extrabold text-lg tracking-tight text-white group-hover:text-indigo-400 transition">
-                                            Portal Materi
-                                        </span>
-                                        <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                                            Workshop
-                                        </span>
+                                        <span className="font-extrabold text-lg tracking-tight text-white group-hover:text-indigo-400 transition">Portal Materi</span>
+                                        <span className="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">Workshop</span>
                                     </div>
                                     <p className="text-xs text-slate-400 font-medium hidden sm:block">Akses Modul, Slide & Rekaman Resmi</p>
                                 </div>
@@ -488,16 +424,12 @@
 
                             <div className="flex items-center space-x-3">
                                 {currentView !== 'home' && (
-                                    <button 
-                                        onClick={() => { setCurrentView('home'); setSelectedEventId(null); }}
-                                        className="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition border border-transparent hover:border-slate-700"
-                                    >
+                                    <button onClick={() => { setCurrentView('home'); setSelectedEventId(null); }} className="hidden sm:flex items-center space-x-2 px-4 py-2 rounded-xl text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800/80 transition border border-transparent hover:border-slate-700">
                                         <i data-lucide="arrow-left" className="w-4 h-4"></i>
                                         <span>Daftar Event</span>
                                     </button>
                                 )}
 
-                                {/* HIDE ADMIN MODE: Hanya muncul jika variabel isAdmin bernilai true */}
                                 {isAdmin ? (
                                     <div className="flex items-center space-x-2 bg-indigo-950/40 border border-indigo-500/30 px-3 py-1.5 rounded-2xl">
                                         <span className="flex h-2 w-2 relative">
@@ -505,19 +437,12 @@
                                             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                         </span>
                                         <span className="text-xs font-bold text-indigo-300 hidden md:inline">Mode Admin</span>
-                                        <button 
-                                            onClick={() => { setIsAdmin(false); showToast('Keluar dari mode admin'); }}
-                                            className="p-1 text-slate-400 hover:text-rose-400 transition"
-                                            title="Keluar Admin"
-                                        >
+                                        <button onClick={() => { setIsAdmin(false); showToast('Keluar dari mode admin'); }} className="p-1 text-slate-400 hover:text-rose-400 transition" title="Keluar Admin">
                                             <i data-lucide="log-out" className="w-4 h-4"></i>
                                         </button>
                                     </div>
                                 ) : (
-                                    <button 
-                                        onClick={() => setShowAdminLoginModal(true)}
-                                        className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition shadow-sm"
-                                    >
+                                    <button onClick={() => setShowAdminLoginModal(true)} className="flex items-center space-x-2 px-3.5 py-2 bg-slate-900/90 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition shadow-sm">
                                         <i data-lucide="lock" className="w-3.5 h-3.5 text-indigo-400"></i>
                                         <span>Kelola Data</span>
                                     </button>
@@ -526,7 +451,6 @@
                         </div>
                     </header>
 
-                    {/* MAIN CONTENT */}
                     <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
                         {currentView === 'home' && (
                             <div>
@@ -538,9 +462,7 @@
                                         </div>
                                         <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight leading-tight mb-4">
                                             Akses & Unduh Materi <br className="hidden sm:inline" />
-                                            <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-indigo-200 bg-clip-text text-transparent">
-                                                Workshop, Seminar, & Pelatihan
-                                            </span>
+                                            <span className="bg-gradient-to-r from-indigo-400 via-sky-300 to-indigo-200 bg-clip-text text-transparent">Workshop, Seminar, & Pelatihan</span>
                                         </h1>
                                         <p className="text-base sm:text-lg text-slate-300 leading-relaxed mb-8">
                                             Dapatkan slide presentasi resmi, template desain, source code praktikum, modul PDF, dan rekaman workshop dalam satu tempat.
@@ -556,12 +478,7 @@
                                                 className="w-full pl-12 pr-28 py-4 bg-slate-900/90 border border-slate-700/80 rounded-2xl text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition shadow-inner"
                                             />
                                             {searchQuery && (
-                                                <button 
-                                                    onClick={() => setSearchQuery('')}
-                                                    className="absolute right-14 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-semibold"
-                                                >
-                                                    Reset
-                                                </button>
+                                                <button onClick={() => setSearchQuery('')} className="absolute right-14 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs font-semibold">Reset</button>
                                             )}
                                         </div>
                                     </div>
@@ -574,9 +491,7 @@
                                                 key={cat}
                                                 onClick={() => setSelectedCategory(cat)}
                                                 className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition ${
-                                                    selectedCategory === cat 
-                                                        ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' 
-                                                        : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
+                                                    selectedCategory === cat ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-900/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-800'
                                                 }`}
                                             >
                                                 {cat}
@@ -584,7 +499,6 @@
                                         ))}
                                     </div>
 
-                                    {/* Tombol Tambah Event (Hanya Muncul Jika Admin) */}
                                     {isAdmin && (
                                         <button
                                             onClick={() => {
@@ -616,85 +530,48 @@
                                     <div className="text-center py-20 bg-slate-900/40 border border-slate-800/80 rounded-3xl p-8">
                                         <h3 className="text-lg font-bold text-white mb-1">Event Tidak Ditemukan</h3>
                                         <p className="text-sm text-slate-400 max-w-md mx-auto mb-6">Tidak ada event yang sesuai.</p>
-                                        <button
-                                            onClick={() => { setSearchQuery(''); setSelectedCategory('Semua'); }}
-                                            className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition"
-                                        >
-                                            Tampilkan Semua Event
-                                        </button>
+                                        <button onClick={() => { setSearchQuery(''); setSelectedCategory('Semua'); }} className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition">Tampilkan Semua Event</button>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {filteredEvents.map((event) => {
-                                            const eventMatsCount = materials.filter(m => m.event_id === event.id && (isAdmin || m.is_active)).length;
                                             return (
-                                                <div 
-                                                    key={event.id}
-                                                    className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/40 rounded-3xl overflow-hidden transition duration-300 flex flex-col shadow-xl"
-                                                >
+                                                <div key={event.id} className="group bg-slate-900/70 hover:bg-slate-900 border border-slate-800/80 hover:border-indigo-500/40 rounded-3xl overflow-hidden transition duration-300 flex flex-col shadow-xl">
                                                     <div className="relative h-48 w-full overflow-hidden bg-slate-950">
-                                                        <img 
-                                                            src={event.banner_url || "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80"} 
-                                                            alt={event.title}
-                                                            className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                                                        />
+                                                        <img src={event.banner_url || "https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&w=800&q=80"} alt={event.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500"/>
                                                         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
                                                         <div className="absolute top-4 left-4 flex flex-wrap gap-2">
-                                                            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-600/90 text-white backdrop-blur-md">
-                                                                {event.category}
-                                                            </span>
+                                                            <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-indigo-600/90 text-white backdrop-blur-md">{event.category}</span>
                                                         </div>
                                                         {isAdmin && (
                                                             <div className="absolute top-4 right-4">
-                                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${event.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>
-                                                                    {event.is_active ? 'Publik' : 'Draft'}
-                                                                </span>
+                                                                <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${event.is_active ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/20 text-rose-300'}`}>{event.is_active ? 'Publik' : 'Draft'}</span>
                                                             </div>
                                                         )}
                                                     </div>
 
                                                     <div className="p-6 flex-1 flex flex-col justify-between">
                                                         <div>
-                                                            <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-indigo-300 transition">
-                                                                {event.title}
-                                                            </h3>
+                                                            <h3 className="text-lg font-bold text-white mb-2 line-clamp-2 group-hover:text-indigo-300 transition">{event.title}</h3>
                                                             <div className="flex items-center space-x-2 text-xs text-indigo-400 font-semibold mb-3">
                                                                 <i data-lucide="user" className="w-3.5 h-3.5"></i>
                                                                 <span className="truncate">{event.speaker}</span>
                                                             </div>
-                                                            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4">
-                                                                {event.description}
-                                                            </p>
+                                                            <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed mb-4">{event.description}</p>
                                                         </div>
 
                                                         <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-2">
-                                                            <button
-                                                                onClick={() => handleOpenEvent(event.id)}
-                                                                className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2"
-                                                            >
+                                                            <button onClick={() => handleOpenEvent(event.id)} className="flex-1 py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center justify-center space-x-2">
                                                                 <span>Buka Materi</span>
                                                                 <i data-lucide="arrow-right" className="w-4 h-4"></i>
                                                             </button>
 
-                                                            {/* Tombol Edit/Hapus Event (Hanya Muncul Jika Admin) */}
                                                             {isAdmin && (
                                                                 <div className="flex items-center space-x-1">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            setEditingEvent(event);
-                                                                            setEventFormData({ ...event });
-                                                                            setShowEventModal(true);
-                                                                        }}
-                                                                        className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl"
-                                                                        title="Edit"
-                                                                    >
+                                                                    <button onClick={() => { setEditingEvent(event); setEventFormData({ ...event }); setShowEventModal(true); }} className="p-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl" title="Edit">
                                                                         <i data-lucide="edit-3" className="w-4 h-4"></i>
                                                                     </button>
-                                                                    <button
-                                                                        onClick={() => handleDeleteEvent(event.id)}
-                                                                        className="p-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-xl"
-                                                                        title="Hapus"
-                                                                    >
+                                                                    <button onClick={() => handleDeleteEvent(event.id)} className="p-2.5 bg-rose-500/10 hover:bg-rose-500 text-rose-400 hover:text-white rounded-xl" title="Hapus">
                                                                         <i data-lucide="trash-2" className="w-4 h-4"></i>
                                                                     </button>
                                                                 </div>
@@ -712,22 +589,15 @@
                         {currentView === 'event-detail' && selectedEvent && (
                             <div>
                                 <div className="flex items-center justify-between mb-6">
-                                    <button 
-                                        onClick={() => setCurrentView('home')}
-                                        className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-white transition group bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800"
-                                    >
+                                    <button onClick={() => setCurrentView('home')} className="inline-flex items-center space-x-2 text-xs font-bold text-slate-400 hover:text-white transition group bg-slate-900/60 px-3.5 py-2 rounded-xl border border-slate-800">
                                         <i data-lucide="arrow-left" className="w-4 h-4"></i>
                                         <span>Kembali ke Beranda</span>
                                     </button>
                                 </div>
 
                                 <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 sm:p-8 mb-8 shadow-2xl">
-                                    <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-                                        {selectedEvent.title}
-                                    </h1>
-                                    <p className="text-slate-300 text-sm leading-relaxed mb-6">
-                                        {selectedEvent.description}
-                                    </p>
+                                    <h1 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">{selectedEvent.title}</h1>
+                                    <p className="text-slate-300 text-sm leading-relaxed mb-6">{selectedEvent.description}</p>
                                 </div>
 
                                 <div className="flex justify-between items-center mb-6">
@@ -758,7 +628,7 @@
 
                                 {eventMaterials.length === 0 ? (
                                     <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-2xl">
-                                        <p className="text-sm text-slate-400">Belum ada materi untuk event ini di database.</p>
+                                        <p className="text-sm text-slate-400">Belum ada materi untuk event ini.</p>
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -768,9 +638,7 @@
                                                 <div key={mat.id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
                                                     <div>
                                                         <div className="flex justify-between items-start mb-3">
-                                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>
-                                                                {typeInfo.label}
-                                                            </span>
+                                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>{typeInfo.label}</span>
                                                             {isAdmin && (
                                                                 <button onClick={() => handleDeleteMaterial(mat.id)} className="text-rose-400 hover:text-rose-300">
                                                                     <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
@@ -782,13 +650,7 @@
                                                     </div>
                                                     <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
                                                         <span className="text-slate-400">{mat.download_count || 0} unduhan</span>
-                                                        <a
-                                                            href={mat.file_url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            onClick={() => handleDownloadClick(mat)}
-                                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5"
-                                                        >
+                                                        <a href={mat.file_url} target="_blank" rel="noopener noreferrer" onClick={() => handleDownloadClick(mat)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5">
                                                             <span>Unduh / Buka</span>
                                                             <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
                                                         </a>
@@ -802,7 +664,6 @@
                         )}
                     </main>
 
-                    {/* MODAL ADMIN LOGIN (AMAN & TERSEMBUNYI) */}
                     {showAdminLoginModal && (
                         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl relative">
@@ -810,38 +671,18 @@
                                 <p className="text-xs text-slate-400 text-center mb-6">Masukkan password admin untuk mengelola event.</p>
                                 <form onSubmit={handleAdminLogin} className="space-y-4">
                                     <div className="relative">
-                                        {/* Menggunakan type="password" dan placeholder aman agar ketikan disembunyikan */}
-                                        <input 
-                                            type="password"
-                                            value={adminPasswordInput}
-                                            onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminError(''); }}
-                                            placeholder="Masukkan password admin..." 
-                                            className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500"
-                                            autoFocus
-                                        />
+                                        <input type="password" value={adminPasswordInput} onChange={(e) => { setAdminPasswordInput(e.target.value); setAdminError(''); }} placeholder="Masukkan password admin..." className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-sm text-white outline-none focus:ring-2 focus:ring-indigo-500" autoFocus/>
                                     </div>
                                     {adminError && <p className="text-xs text-rose-400">{adminError}</p>}
                                     <div className="flex justify-end space-x-3 pt-2">
-                                        <button 
-                                            type="button" 
-                                            onClick={() => { setShowAdminLoginModal(false); setAdminError(''); setAdminPasswordInput(''); }} 
-                                            className="px-4 py-2 text-xs text-slate-400 hover:text-white"
-                                        >
-                                            Batal
-                                        </button>
-                                        <button 
-                                            type="submit" 
-                                            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition"
-                                        >
-                                            Masuk
-                                        </button>
+                                        <button type="button" onClick={() => { setShowAdminLoginModal(false); setAdminError(''); setAdminPasswordInput(''); }} className="px-4 py-2 text-xs text-slate-400 hover:text-white">Batal</button>
+                                        <button type="submit" className="px-5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition">Masuk</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
 
-                    {/* MODAL TAMBAH/EDIT EVENT */}
                     {showEventModal && (
                         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-xl w-full my-8">
@@ -882,15 +723,14 @@
                         </div>
                     )}
 
-                    {/* MODAL TAMBAH MATERI */}
                     {showMaterialModal && (
                         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full">
-                                <h3 className="text-lg font-bold text-white mb-4">Tambah Materi</h3>
+                                <h3 className="text-lg font-bold text-white mb-4">Tambah Materi Baru</h3>
                                 <form onSubmit={handleSaveMaterial} className="space-y-4 text-xs">
                                     <div>
                                         <label className="block font-bold text-slate-300 mb-1">Judul Materi *</label>
-                                        <input type="text" required placeholder="Judul Materi" value={materialFormData.title} onChange={e => setMaterialFormData({...materialFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                        <input type="text" required placeholder="Contoh: Slide Modul Pembelajaran" value={materialFormData.title} onChange={e => setMaterialFormData({...materialFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                     </div>
                                     <div className="grid grid-cols-2 gap-3">
                                         <div>
@@ -906,7 +746,7 @@
                                             </select>
                                         </div>
                                         <div>
-                                            <label className="block font-bold text-slate-300 mb-1">Ukuran / Info</label>
+                                            <label className="block font-bold text-slate-300 mb-1">Ukuran / Keterangan</label>
                                             <input type="text" placeholder="Contoh: 5 MB" value={materialFormData.file_size} onChange={e => setMaterialFormData({...materialFormData, file_size: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
                                         </div>
                                     </div>
@@ -924,7 +764,7 @@
                                     </div>
                                     <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
                                         <button type="button" onClick={() => setShowMaterialModal(false)} className="px-4 py-2 text-slate-400">Batal</button>
-                                        <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl">Simpan</button>
+                                        <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl">Simpan Materi</button>
                                     </div>
                                 </form>
                             </div>
