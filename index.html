@@ -79,116 +79,7 @@
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const DATA_VERSION = "3.2-supabase";
-        const INITIAL_MATERIALS = [
-            // Materi Event 1 (UI/UX)
-            {
-                id: "mat-1",
-                event_id: "ev-1",
-                title: "Slide Presentasi Utama - Design System & UI/UX 2026",
-                type: "pdf",
-                speaker: "Aditya Pratama",
-                description: "Slide komprehensif berisi teori, studi kasus industri, dan panduan langkah demi langkah.",
-                file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                file_size: "14.2 MB",
-                is_active: true,
-                is_locked: false,
-                download_count: 142
-            },
-            {
-                id: "mat-2",
-                event_id: "ev-1",
-                title: "File Template Figma Community & Token Kit",
-                type: "link",
-                speaker: "Aditya Pratama",
-                description: "Link duplikasi file Figma yang memuat komponen UI, warna, dan tipografi siap pakai.",
-                file_url: "https://www.figma.com/community",
-                file_size: "Figma Link",
-                is_active: true,
-                is_locked: false,
-                download_count: 310
-            },
-            {
-                id: "mat-3",
-                event_id: "ev-1",
-                title: "Rekaman Video Sesi Live Workshop (Full HD)",
-                type: "video",
-                speaker: "Aditya Pratama",
-                description: "Video rekaman berdurasi 4 jam lengkap dengan sesi tanya jawab interaktif.",
-                file_url: "https://www.youtube.com",
-                file_size: "Video Stream",
-                is_active: true,
-                is_locked: false,
-                download_count: 89
-            },
-            // Materi Event 2 (React & Supabase)
-            {
-                id: "mat-4",
-                event_id: "ev-2",
-                title: "Handbook Modul Lengkap React & Supabase Architecture",
-                type: "pdf",
-                speaker: "Rian Hidayat",
-                description: "Dokumentasi kode, cheatsheet hooks, dan skema tabel database.",
-                file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                file_size: "8.5 MB",
-                is_active: true,
-                is_locked: false,
-                download_count: 220
-            },
-            {
-                id: "mat-5",
-                event_id: "ev-2",
-                title: "Source Code Repository GitHub (Starter & Final Code)",
-                type: "code",
-                speaker: "Rian Hidayat",
-                description: "Source code lengkap aplikasi CRUD modern berbasis React dan Supabase.",
-                file_url: "https://github.com",
-                file_size: "GitHub Repo",
-                is_active: true,
-                is_locked: false,
-                download_count: 405
-            },
-            {
-                id: "mat-6",
-                event_id: "ev-2",
-                title: "E-Certificate Peserta Resmi (Khusus Terdaftar)",
-                type: "certificate",
-                speaker: "Tech Academy Indonesia",
-                description: "Sertifikat digital terverifikasi dengan nomor registrasi unik.",
-                file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                file_size: "PDF 1.2 MB",
-                is_active: true,
-                is_locked: false,
-                download_count: 95
-            },
-            // Materi Event 3 (AI & Bisnis)
-            {
-                id: "mat-7",
-                event_id: "ev-3",
-                title: "Slide Presentasi AI Productivity & Prompting Framework",
-                type: "presentation",
-                speaker: "Siti Nurhaliza",
-                description: "Kumpulan formula prompt teruji untuk marketing, analisis data, dan penulisan dokumen.",
-                file_url: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
-                file_size: "6.8 MB",
-                is_active: true,
-                is_locked: false,
-                download_count: 178
-            },
-            {
-                id: "mat-8",
-                event_id: "ev-3",
-                title: "Kumpulan Template Prompts & Workflow Otomasi (Google Sheets)",
-                type: "sheet",
-                speaker: "Siti Nurhaliza",
-                description: "Katalog prompt AI siap copy-paste langsung ke ChatGPT / Gemini / Claude.",
-                file_url: "https://docs.google.com",
-                file_size: "Spreadsheet",
-                is_active: true,
-                is_locked: false,
-                download_count: 260
-            }
-        ];
+        const DATA_VERSION = "3.3-supabase-cloud";
 
         // Format Ikon Berdasarkan Tipe File
         const getTypeInfo = (type) => {
@@ -253,7 +144,7 @@
                 speaker: '',
                 description: '',
                 file_url: '',
-                file_size: '',
+                file_size: '5 MB',
                 is_active: true,
                 is_locked: false
             });
@@ -265,20 +156,13 @@
                 setTimeout(() => setToast(null), 3500);
             };
 
-            // Ambil data event dari Supabase saat aplikasi pertama dimuat
+            // Ambil data event & materials dari Supabase saat aplikasi pertama dimuat
             useEffect(() => {
                 fetchEventsFromSupabase();
-
-                const savedMaterials = localStorage.getItem('portal_materi_materials');
-                if (!savedMaterials) {
-                    setMaterials(INITIAL_MATERIALS);
-                    localStorage.setItem('portal_materi_materials', JSON.stringify(INITIAL_MATERIALS));
-                } else {
-                    try { setMaterials(JSON.parse(savedMaterials)); } catch (e) { setMaterials(INITIAL_MATERIALS); }
-                }
+                fetchMaterialsFromSupabase();
             }, []);
 
-            // Fungsi Fetch Data dari Supabase
+            // Fungsi Fetch Event dari Supabase
             const fetchEventsFromSupabase = async () => {
                 try {
                     const { data, error } = await supabaseClient
@@ -287,12 +171,28 @@
                         .order('date', { ascending: false });
 
                     if (error) throw error;
-                    if (data && data.length > 0) {
+                    if (data) {
                         setEvents(data);
                     }
                 } catch (error) {
-                    console.error('Gagal mengambil data Supabase:', error.message);
-                    showToast('Gagal memuat data dari database Supabase', 'error');
+                    console.error('Gagal mengambil data events Supabase:', error.message);
+                    showToast('Gagal memuat data event dari Supabase', 'error');
+                }
+            };
+
+            // Fungsi Fetch Materials dari Supabase
+            const fetchMaterialsFromSupabase = async () => {
+                try {
+                    const { data, error } = await supabaseClient
+                        .from('materials')
+                        .select('*');
+
+                    if (error) throw error;
+                    if (data) {
+                        setMaterials(data);
+                    }
+                } catch (error) {
+                    console.error('Gagal mengambil data materials Supabase:', error.message);
                 }
             };
 
@@ -301,11 +201,6 @@
                     window.lucide.createIcons();
                 }
             });
-
-            const saveMaterialsToStorage = (newMaterials) => {
-                setMaterials(newMaterials);
-                localStorage.setItem('portal_materi_materials', JSON.stringify(newMaterials));
-            };
 
             const selectedEvent = useMemo(() => {
                 return events.find(ev => ev.id === selectedEventId) || null;
@@ -438,31 +333,63 @@
                 }
             };
 
-            const handleSaveMaterial = (e) => {
+            // Simpan Materi ke Database Supabase (Create / Update)
+            const handleSaveMaterial = async (e) => {
                 e.preventDefault();
                 if (!materialFormData.title || !materialFormData.file_url) {
                     showToast('Judul dan URL file materi wajib diisi', 'error');
                     return;
                 }
 
-                if (editingMaterial) {
-                    const updated = materials.map(m => m.id === editingMaterial.id ? { ...materialFormData, id: editingMaterial.id } : m);
-                    saveMaterialsToStorage(updated);
-                    showToast('Materi berhasil diperbarui!');
-                } else {
-                    const newMat = {
-                        ...materialFormData,
-                        id: 'mat-' + Date.now(),
-                        download_count: 0
-                    };
-                    saveMaterialsToStorage([...materials, newMat]);
-                    showToast('Materi baru berhasil ditambahkan!');
+                try {
+                    if (editingMaterial) {
+                        const { error } = await supabaseClient
+                            .from('materials')
+                            .update({
+                                title: materialFormData.title,
+                                type: materialFormData.type,
+                                speaker: materialFormData.speaker,
+                                description: materialFormData.description,
+                                file_url: materialFormData.file_url,
+                                file_size: materialFormData.file_size,
+                                is_active: materialFormData.is_active,
+                                is_locked: materialFormData.is_locked
+                            })
+                            .eq('id', editingMaterial.id);
+
+                        if (error) throw error;
+                        showToast('Materi berhasil diperbarui di Supabase!');
+                    } else {
+                        const newMatId = 'mat-' + Date.now();
+                        const { error } = await supabaseClient
+                            .from('materials')
+                            .insert([{
+                                id: newMatId,
+                                event_id: materialFormData.event_id,
+                                title: materialFormData.title,
+                                type: materialFormData.type,
+                                speaker: materialFormData.speaker,
+                                description: materialFormData.description,
+                                file_url: materialFormData.file_url,
+                                file_size: materialFormData.file_size,
+                                is_active: materialFormData.is_active,
+                                is_locked: materialFormData.is_locked,
+                                download_count: 0
+                            }]);
+
+                        if (error) throw error;
+                        showToast('Materi baru berhasil ditambahkan ke Supabase!');
+                    }
+
+                    fetchMaterialsFromSupabase();
+                    setShowMaterialModal(false);
+                    setEditingMaterial(null);
+                } catch (error) {
+                    showToast('Gagal menyimpan materi: ' + error.message, 'error');
                 }
-                setShowMaterialModal(false);
-                setEditingMaterial(null);
             };
 
-            // Hapus Event dari Supabase
+            // Hapus Event dari Supabase (beserta materinya)
             const handleDeleteEvent = async (eventId) => {
                 if (confirm('Hapus event ini beserta seluruh materinya dari Supabase?')) {
                     try {
@@ -473,14 +400,17 @@
 
                         if (error) throw error;
 
-                        const updatedMaterials = materials.filter(m => m.event_id !== eventId);
-                        saveMaterialsToStorage(updatedMaterials);
+                        await supabaseClient
+                            .from('materials')
+                            .delete()
+                            .eq('event_id', eventId);
 
                         if (selectedEventId === eventId) {
                             setCurrentView('home');
                         }
 
                         fetchEventsFromSupabase();
+                        fetchMaterialsFromSupabase();
                         showToast('Event berhasil dihapus dari database.');
                     } catch (error) {
                         showToast('Gagal menghapus event: ' + error.message, 'error');
@@ -488,22 +418,37 @@
                 }
             };
 
-            const handleDeleteMaterial = (materialId) => {
-                if (confirm('Hapus materi ini?')) {
-                    const updated = materials.filter(m => m.id !== materialId);
-                    saveMaterialsToStorage(updated);
-                    showToast('Materi berhasil dihapus');
+            // Hapus Materi dari Supabase
+            const handleDeleteMaterial = async (materialId) => {
+                if (confirm('Hapus materi ini dari database?')) {
+                    try {
+                        const { error } = await supabaseClient
+                            .from('materials')
+                            .delete()
+                            .eq('id', materialId);
+
+                        if (error) throw error;
+
+                        fetchMaterialsFromSupabase();
+                        showToast('Materi berhasil dihapus');
+                    } catch (error) {
+                        showToast('Gagal menghapus materi: ' + error.message, 'error');
+                    }
                 }
             };
 
-            const handleDownloadClick = (material) => {
-                const updated = materials.map(m => {
-                    if (m.id === material.id) {
-                        return { ...m, download_count: (m.download_count || 0) + 1 };
-                    }
-                    return m;
-                });
-                saveMaterialsToStorage(updated);
+            const handleDownloadClick = async (material) => {
+                try {
+                    const newCount = (material.download_count || 0) + 1;
+                    await supabaseClient
+                        .from('materials')
+                        .update({ download_count: newCount })
+                        .eq('id', material.id);
+
+                    fetchMaterialsFromSupabase();
+                } catch (e) {
+                    console.error(e);
+                }
             };
 
             return (
@@ -811,42 +756,48 @@
                                     )}
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {eventMaterials.map((mat) => {
-                                        const typeInfo = getTypeInfo(mat.type);
-                                        return (
-                                            <div key={mat.id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
-                                                <div>
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>
-                                                            {typeInfo.label}
-                                                        </span>
-                                                        {isAdmin && (
-                                                            <button onClick={() => handleDeleteMaterial(mat.id)} className="text-rose-400 hover:text-rose-300">
-                                                                <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
-                                                            </button>
-                                                        )}
+                                {eventMaterials.length === 0 ? (
+                                    <div className="text-center py-12 bg-slate-900/40 border border-slate-800 rounded-2xl">
+                                        <p className="text-sm text-slate-400">Belum ada materi untuk event ini di database.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {eventMaterials.map((mat) => {
+                                            const typeInfo = getTypeInfo(mat.type);
+                                            return (
+                                                <div key={mat.id} className="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between">
+                                                    <div>
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md border ${typeInfo.bg} ${typeInfo.color}`}>
+                                                                {typeInfo.label}
+                                                            </span>
+                                                            {isAdmin && (
+                                                                <button onClick={() => handleDeleteMaterial(mat.id)} className="text-rose-400 hover:text-rose-300">
+                                                                    <i data-lucide="trash-2" className="w-3.5 h-3.5"></i>
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                        <h3 className="text-sm font-bold text-white mb-1.5">{mat.title}</h3>
+                                                        <p className="text-xs text-slate-400 mb-4">{mat.description}</p>
                                                     </div>
-                                                    <h3 className="text-sm font-bold text-white mb-1.5">{mat.title}</h3>
-                                                    <p className="text-xs text-slate-400 mb-4">{mat.description}</p>
+                                                    <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
+                                                        <span className="text-slate-400">{mat.download_count || 0} unduhan</span>
+                                                        <a
+                                                            href={mat.file_url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            onClick={() => handleDownloadClick(mat)}
+                                                            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5"
+                                                        >
+                                                            <span>Unduh / Buka</span>
+                                                            <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
+                                                        </a>
+                                                    </div>
                                                 </div>
-                                                <div className="pt-3 border-t border-slate-800 flex justify-between items-center text-xs">
-                                                    <span className="text-slate-400">{mat.download_count || 0} unduhan</span>
-                                                    <a
-                                                        href={mat.file_url}
-                                                        target="_blank"
-                                                        rel="noopener noreferrer"
-                                                        onClick={() => handleDownloadClick(mat)}
-                                                        className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl font-bold flex items-center space-x-1.5"
-                                                    >
-                                                        <span>Unduh / Buka</span>
-                                                        <i data-lucide="external-link" className="w-3.5 h-3.5"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
                             </div>
                         )}
                     </main>
@@ -937,9 +888,41 @@
                             <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-lg w-full">
                                 <h3 className="text-lg font-bold text-white mb-4">Tambah Materi</h3>
                                 <form onSubmit={handleSaveMaterial} className="space-y-4 text-xs">
-                                    <input type="text" required placeholder="Judul Materi" value={materialFormData.title} onChange={e => setMaterialFormData({...materialFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
-                                    <input type="url" required placeholder="URL File / Link" value={materialFormData.file_url} onChange={e => setMaterialFormData({...materialFormData, file_url: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
-                                    <div className="flex justify-end space-x-3">
+                                    <div>
+                                        <label className="block font-bold text-slate-300 mb-1">Judul Materi *</label>
+                                        <input type="text" required placeholder="Judul Materi" value={materialFormData.title} onChange={e => setMaterialFormData({...materialFormData, title: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <div>
+                                            <label className="block font-bold text-slate-300 mb-1">Tipe File</label>
+                                            <select value={materialFormData.type} onChange={e => setMaterialFormData({...materialFormData, type: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white">
+                                                <option value="pdf">PDF Document</option>
+                                                <option value="presentation">Slide PPT</option>
+                                                <option value="video">Video Sesi</option>
+                                                <option value="code">Source Code</option>
+                                                <option value="sheet">Spreadsheet</option>
+                                                <option value="certificate">E-Sertifikat</option>
+                                                <option value="link">Resource Link</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block font-bold text-slate-300 mb-1">Ukuran / Info</label>
+                                            <input type="text" placeholder="Contoh: 5 MB" value={materialFormData.file_size} onChange={e => setMaterialFormData({...materialFormData, file_size: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label className="block font-bold text-slate-300 mb-1">URL File / Tautan *</label>
+                                        <input type="url" required placeholder="https://..." value={materialFormData.file_url} onChange={e => setMaterialFormData({...materialFormData, file_url: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"/>
+                                    </div>
+                                    <div>
+                                        <label className="block font-bold text-slate-300 mb-1">Deskripsi Singkat</label>
+                                        <textarea rows="2" value={materialFormData.description} onChange={e => setMaterialFormData({...materialFormData, description: e.target.value})} className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-white"></textarea>
+                                    </div>
+                                    <div className="flex items-center space-x-2">
+                                        <input type="checkbox" id="matActive" checked={materialFormData.is_active} onChange={e => setMaterialFormData({...materialFormData, is_active: e.target.checked})}/>
+                                        <label htmlFor="matActive" className="text-slate-300">Publikasikan Materi</label>
+                                    </div>
+                                    <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
                                         <button type="button" onClick={() => setShowMaterialModal(false)} className="px-4 py-2 text-slate-400">Batal</button>
                                         <button type="submit" className="px-5 py-2 bg-indigo-600 text-white font-bold rounded-xl">Simpan</button>
                                     </div>
