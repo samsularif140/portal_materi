@@ -79,7 +79,7 @@
         
         const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-        const DATA_VERSION = "3.4-supabase-cloud";
+        const DATA_VERSION = "3.5-supabase-cloud";
 
         const getTypeInfo = (type) => {
             switch(type) {
@@ -139,7 +139,6 @@
                 event_id: '',
                 title: '',
                 type: 'pdf',
-                speaker: '',
                 description: '',
                 file_url: '',
                 file_size: '5 MB',
@@ -320,7 +319,6 @@
                         event_id: materialFormData.event_id,
                         title: materialFormData.title,
                         type: materialFormData.type,
-                        speaker: materialFormData.speaker || '',
                         description: materialFormData.description || '',
                         file_url: materialFormData.file_url,
                         file_size: materialFormData.file_size || '5 MB',
@@ -610,7 +608,6 @@
                                                     event_id: selectedEvent.id,
                                                     title: '',
                                                     type: 'pdf',
-                                                    speaker: selectedEvent.speaker,
                                                     description: '',
                                                     file_url: '',
                                                     file_size: '5 MB',
